@@ -133,12 +133,6 @@ class _LoginScreenState extends State<LoginScreen>
         }
       }
 
-      // Aktifkan screen pinning tepat setelah login berhasil
-      await KioskController.instance.lock();
-      if (!mounted) return;
-
-
-
       ExamService.pingAppLogin(); // daftarkan ke dashboard segera
       if (!mounted) return;
       Navigator.of(context).pushNamedAndRemoveUntil('/home', (route) => false);

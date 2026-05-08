@@ -48,12 +48,13 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
   @override
   void initState() {
     super.initState();
-    KioskController.instance.lock();
     WidgetsBinding.instance.addObserver(this);
     KioskController.instance.addViolationListener(_onNativeViolation);
     _loadCachedUserId();
     _clearClipboard();
     WidgetsBinding.instance.addPostFrameCallback((_) async {
+      await KioskController.instance.lock();
+      if (!mounted) return;
       await _checkBlockedOnStart();
       if (!mounted) return;
       await _checkDeviceSecurity();
