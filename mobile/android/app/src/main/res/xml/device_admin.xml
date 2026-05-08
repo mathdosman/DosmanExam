@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Tidak perlu policy khusus — hanya butuh status Device Owner
+         agar startLockTask() berjalan tanpa dialog konfirmasi. -->
+    <uses-policies />
+</device-admin>

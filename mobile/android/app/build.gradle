@@ -1,0 +1,127 @@
+plugins {
+    id "com.android.application"
+    id "kotlin-android"
+    // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
+    id "com.google.firebase.appdistribution"
+}
+
+// Baca versi dari pubspec.yaml (format: version: X.Y.Z+N → ambil X.Y.Z)
+def getPubspecVersion() {
+    def pubspec = file("../../pubspec.yaml").text
+    def m = pubspec =~ /(?m)^version:\s+(\d+\.\d+\.\d+)/
+    return m ? m[0][1] : "1.0.0"
+}
+
+// Baca key.properties untuk signing release
+def keystorePropertiesFile = rootProject.file("key.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+}
+
+android {
+    namespace = "com.dosman.dosman_ujian"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_1_8
+        targetCompatibility = JavaVersion.VERSION_1_8
+    }
+
+    kotlinOptions {
+        jvmTarget = JavaVersion.VERSION_1_8
+    }
+
+    signingConfigs {
+        release {
+            keyAlias     = keystoreProperties['keyAlias']
+            keyPassword  = keystoreProperties['keyPassword']
+            storeFile    = keystoreProperties['storeFile'] ? file(keystoreProperties['storeFile']) : null
+            storePassword = keystoreProperties['storePassword']
+        }
+    }
+
+    defaultConfig {
+        applicationId = "com.dosman.dosman_ujian"
+        minSdk = flutter.minSdkVersion
+        targetSdk = flutter.targetSdkVersion
+        versionCode = flutter.versionCode
+        versionName = flutter.versionName
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.release
+            firebaseAppDistribution {
+                appId = "1:315836392369:android:78ed8c611b0fb0e74fd390"
+                releaseNotes = "Dosman Exam - build terbaru"
+                groups = "siswa-tester"
+            }
+        }
+    }
+}
+
+flutter {
+    source = "../.."
+}
+
+// Naikkan versi di pubspec.yaml dengan aturan rollover:
+//   patch < 9  → patch + 1
+//   patch == 9 → minor + 1, patch = 1  (hindari angka 2 digit di patch)
+//   minor == 9 → major + 1, minor = 1, patch = 1
+def bumpPubspecVersion() {
+    def pubspecFile = file("../../pubspec.yaml")
+    def content     = pubspecFile.text
+    def m = content =~ /(?m)^(version:\s+)(\d+)\.(\d+)\.(\d+)\+(\d+)/
+    if (!m) return null
+    def major = m[0][2].toInteger()
+    def minor = m[0][3].toInteger()
+    def patch = m[0][4].toInteger()
+    def build = m[0][5].toInteger()
+
+    def newMajor = major
+    def newMinor = minor
+    def newPatch = patch
+    if (patch >= 9) {
+        newPatch = 1
+        if (minor >= 9) {
+            newMinor = 1
+            newMajor = major + 1
+        } else {
+            newMinor = minor + 1
+        }
+    } else {
+        newPatch = patch + 1
+    }
+    def newBuild = build + 1
+
+    def oldLine = "version: ${major}.${minor}.${patch}+${build}"
+    def newLine = "version: ${newMajor}.${newMinor}.${newPatch}+${newBuild}"
+    pubspecFile.text = content.replace(oldLine, newLine)
+    println "Auto-bump: ${major}.${minor}.${patch}+${build} → ${newMajor}.${newMinor}.${newPatch}+${newBuild}"
+}
+
+// Setelah assembleRelease selesai: rename APK lalu bump versi untuk build berikutnya
+gradle.projectsEvaluated {
+    def assembleTask = tasks.findByName("assembleRelease")
+    if (assembleTask) {
+        assembleTask.doLast {
+            def version = getPubspecVersion()           // versi saat ini (sebelum bump)
+            def flutterApkDir = new File(buildDir, "outputs/flutter-apk")
+            def src = new File(flutterApkDir, "app-release.apk")
+            if (src.exists()) {
+                def dst = new File(flutterApkDir, "dosman_exam_v${version}.apk")
+                if (dst.exists()) dst.delete()
+                java.nio.file.Files.copy(
+                    src.toPath(), dst.toPath(),
+                    java.nio.file.StandardCopyOption.REPLACE_EXISTING
+                )
+                println "APK copied → dosman_exam_v${version}.apk"
+            }
+            bumpPubspecVersion()    // naik patch+1 & buildNumber+1 untuk build berikutnya
+        }
+    }
+}

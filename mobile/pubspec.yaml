@@ -1,0 +1,50 @@
+name: dosman_ujian
+description: Aplikasi Ujian Online Anti-Kecurangan - SMAN 1 GIANYAR, Bali
+publish_to: 'none'
+version: 2.5.1+114
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # HTTP client untuk Moodle REST API
+  http: ^1.2.2
+
+  # WebView untuk menampilkan quiz Moodle dalam mode lockdown
+  flutter_inappwebview: ^6.1.5
+
+  # Secure storage untuk token & kredensial
+  flutter_secure_storage: ^10.0.0
+
+  # Device info untuk binding perangkat
+  device_info_plus: ^12.4.0
+
+  # State management ringan
+  provider: ^6.1.2
+
+  # Icons material
+  cupertino_icons: ^1.0.8
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.3
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/
+
+# Ikon launcher APK / iOS — sumber: logo sekolah (PNG persegi atau hampir persegi, min. 1024px disarankan).
+# Setelah ganti gambar: dart run flutter_launcher_icons
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: assets/logo_sekolah.png
+  min_sdk_android: 21
+  adaptive_icon_background: "#0F2044"
+  remove_alpha_ios: true

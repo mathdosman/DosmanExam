@@ -1,0 +1,72 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- ─── Permissions ─────────────────────────────────────────────── -->
+
+    <!-- Akses internet untuk Moodle REST API & WebView -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+
+    <!-- Cek status jaringan -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <!-- Paksa volume notifikasi agar alarm unpin terdengar meski HP di-silent -->
+    <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+
+    <!-- Aktifkan DND (Do Not Disturb) saat ujian agar notifikasi & telepon masuk diblokir -->
+    <uses-permission android:name="android.permission.ACCESS_NOTIFICATION_POLICY"/>
+
+    <!-- ─── Application ──────────────────────────────────────────────── -->
+
+    <application
+        android:label="Dosman Exam"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="false">
+
+        <!-- ─── Main Activity ─────────────────────────────────────────── -->
+
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize"
+            android:screenOrientation="portrait"
+            android:lockTaskMode="always">
+
+            <meta-data
+                android:name="io.flutter.embedding.android.NormalTheme"
+                android:resource="@style/NormalTheme"/>
+
+            <!-- Launcher intent -->
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+
+        </activity>
+
+        <!-- Device Admin Receiver — diperlukan untuk Device Owner mode (silent lock task) -->
+        <receiver
+            android:name=".ExamDeviceAdmin"
+            android:exported="true"
+            android:permission="android.permission.BIND_DEVICE_ADMIN">
+            <meta-data
+                android:name="android.app.device_admin"
+                android:resource="@xml/device_admin"/>
+            <intent-filter>
+                <action android:name="android.app.action.DEVICE_ADMIN_ENABLED"/>
+            </intent-filter>
+        </receiver>
+
+        <!-- Flutter embedding v2 -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2"/>
+
+    </application>
+
+</manifest>

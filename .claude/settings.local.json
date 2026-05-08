@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter build *)",
+      "Bash(groovy -e ' *)",
+      "Bash(flutter analyze *)",
+      "Bash(flutter pub *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\dosman\\\\Documents\\\\dosman-ujian-project\\\\dosman-ujian-project\" -Recurse -File)",
+      "Bash(Select-Object FullName)",
+      "Bash(Sort-Object FullName)"
+    ]
+  }
+}

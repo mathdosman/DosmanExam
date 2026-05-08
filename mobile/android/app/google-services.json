@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "315836392369",
+    "project_id": "dosmanexam",
+    "storage_bucket": "dosmanexam.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315836392369:android:78ed8c611b0fb0e74fd390",
+        "android_client_info": {
+          "package_name": "com.dosman.dosman_ujian"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHZ_1hahk7dLYV219OYJUzQERrOHZ2V4k"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

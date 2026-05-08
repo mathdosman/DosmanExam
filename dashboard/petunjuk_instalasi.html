@@ -1,0 +1,784 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Petunjuk Instalasi Dosman Exam — SMAN 1 Gianyar</title>
+<style>
+  /* ── Reset & Base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.65;
+    color: #1f2937;
+    background: #f3f4f6;
+  }
+
+  /* ── Print Bar (tersembunyi saat print) ── */
+  .print-bar {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 12px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .print-bar-title { font-size: 14px; font-weight: 700; }
+  .print-bar-hint  { font-size: 12px; opacity: .75; }
+  .btn-pdf {
+    background: #2563eb;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 20px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    white-space: nowrap;
+  }
+  .btn-pdf:hover { background: #1d4ed8; }
+
+  /* ── Wrapper ── */
+  .page {
+    max-width: 820px;
+    margin: 28px auto;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 20px rgba(0,0,0,.10);
+    overflow: hidden;
+  }
+
+  /* ── Header ── */
+  .doc-header {
+    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 100%);
+    color: #fff;
+    padding: 32px 40px 28px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+  }
+  .doc-header img {
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
+    background: #fff;
+    padding: 4px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+  .doc-header-text h1 { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
+  .doc-header-text p  { font-size: 13px; opacity: .85; }
+  .doc-header-badge {
+    margin-top: 8px;
+    display: inline-block;
+    background: rgba(255,255,255,.2);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: .5px;
+  }
+
+  /* ── Body ── */
+  .doc-body { padding: 32px 40px 48px; }
+
+  /* ── Alert Box ── */
+  .alert {
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .alert-blue   { background: #eff6ff; border-left: 4px solid #2563eb; color: #1e40af; }
+  .alert-yellow { background: #fffbeb; border-left: 4px solid #f59e0b; color: #92400e; }
+  .alert-red    { background: #fef2f2; border-left: 4px solid #ef4444; color: #991b1b; }
+  .alert-green  { background: #f0fdf4; border-left: 4px solid #22c55e; color: #166534; }
+  .alert-icon   { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
+
+  /* ── Section ── */
+  .step {
+    margin-bottom: 32px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .step-header {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 12px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .step-number {
+    background: #2563eb;
+    color: #fff;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .step-title { font-size: 14px; font-weight: 700; }
+  .step-body  { padding: 18px 20px; }
+
+  /* ── Sub-steps ── */
+  .substep {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 11px;
+    align-items: flex-start;
+  }
+  .substep-num {
+    background: #dbeafe;
+    color: #1e40af;
+    font-size: 11px;
+    font-weight: 700;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .substep-text { flex: 1; font-size: 13px; }
+  .substep-text .note {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: #6b7280;
+    font-style: italic;
+  }
+  .substep-text strong { color: #1e3a5f; }
+
+  /* ── Brand sections ── */
+  .brand-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 14px;
+  }
+  .brand-card {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .brand-name {
+    font-size: 12px;
+    font-weight: 700;
+    color: #2563eb;
+    margin-bottom: 7px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .brand-steps { list-style: none; }
+  .brand-steps li {
+    font-size: 12px;
+    color: #374151;
+    padding: 2px 0;
+    padding-left: 14px;
+    position: relative;
+  }
+  .brand-steps li::before {
+    content: '›';
+    position: absolute;
+    left: 0;
+    color: #2563eb;
+    font-weight: 700;
+  }
+
+  /* ── Error table ── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+    margin-top: 12px;
+  }
+  th {
+    background: #1e3a5f;
+    color: #fff;
+    padding: 9px 12px;
+    text-align: left;
+    font-size: 12px;
+  }
+  td { padding: 8px 12px; border-bottom: 1px solid #f3f4f6; }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f9fafb; }
+
+  /* ── Section divider ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: #9ca3af;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin: 24px 0 12px;
+  }
+
+  /* ── Warning box ── */
+  .warn-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #7f1d1d;
+  }
+
+  /* ── Success box ── */
+  .success-box {
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin-top: 14px;
+    font-size: 13px;
+    color: #14532d;
+  }
+
+  /* ── Footer ── */
+  .doc-footer {
+    border-top: 1px solid #e5e7eb;
+    padding: 16px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 11px;
+    color: #9ca3af;
+  }
+
+  /* ── Checklist ── */
+  .checklist { list-style: none; }
+  .checklist li {
+    padding: 4px 0;
+    padding-left: 22px;
+    position: relative;
+    font-size: 13px;
+  }
+  .checklist li.ok::before   { content: '✅'; position: absolute; left: 0; }
+  .checklist li.no::before   { content: '❌'; position: absolute; left: 0; }
+  .checklist li.need::before { content: '⚠️'; position: absolute; left: 0; }
+
+  /* ── PRINT STYLES ── */
+  @media print {
+    /* Elemen layar disembunyikan */
+    .print-bar { display: none !important; }
+
+    /* Layout halaman */
+    body {
+      background: #fff;
+      font-size: 9.5pt;   /* ISI — baseline body */
+      line-height: 1.45;
+      color: #111;
+    }
+    .page {
+      max-width: 100%;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+    }
+
+    /* Header dokumen — JUDUL UTAMA */
+    .doc-header {
+      padding: 14px 18px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .doc-header img { width: 54px; height: 54px; }
+    .doc-header-text h1 {
+      font-size: 16pt;     /* JUDUL — 1.68× body */
+      margin-bottom: 3px;
+    }
+    .doc-header-text p  { font-size: 8.5pt; }
+    .doc-header-badge   { font-size: 7.5pt; padding: 2px 9px; }
+
+    /* Body wrapper */
+    .doc-body { padding: 14px 18px 24px; }
+
+    /* Alert/info boxes */
+    .alert {
+      font-size: 8.5pt;
+      padding: 7px 11px;
+      margin-bottom: 10px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .alert-icon { font-size: 12pt; }
+
+    /* Step cards — SUB BAB */
+    .step { margin-bottom: 14px; page-break-inside: avoid; }
+    .step-header {
+      padding: 8px 13px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .step-number {
+      width: 22px;
+      height: 22px;
+      font-size: 9pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .step-title { font-size: 11pt; }   /* SUB BAB — 1.16× body */
+    .step-body  { padding: 11px 14px; }
+
+    /* Sub-steps — ISI */
+    .substep     { margin-bottom: 7px; gap: 9px; }
+    .substep-num {
+      width: 18px;
+      height: 18px;
+      font-size: 8pt;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .substep-text      { font-size: 9pt; }
+    .substep-text .note { font-size: 8pt; }
+
+    /* Brand grid */
+    .brand-grid { grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+    .brand-card { padding: 9px 11px; }
+    .brand-name { font-size: 8.5pt; margin-bottom: 5px; }
+    .brand-steps li { font-size: 8pt; }
+
+    /* Tables */
+    table  { font-size: 8pt; margin-top: 8px; }
+    th {
+      font-size: 8pt;
+      padding: 6px 9px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    td { font-size: 8pt; padding: 5px 9px; }
+    tr:nth-child(even) td {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    /* Labels & boxes */
+    .section-label { font-size: 7.5pt; margin: 14px 0 8px; }
+    .warn-box    { font-size: 8.5pt; padding: 10px 12px; margin-top: 10px;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .success-box { font-size: 8.5pt; padding: 10px 12px; margin-top: 10px;
+                   -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+    /* Checklist */
+    .checklist li { font-size: 8.5pt; padding: 2px 0 2px 20px; }
+
+    /* Footer */
+    .doc-footer { padding: 10px 18px; font-size: 7.5pt; }
+
+    /* Aturan ujian 2-kolom */
+    [style*="grid-template-columns:1fr 1fr"] { gap: 8px; }
+
+    /* Links */
+    a { color: inherit; text-decoration: none; }
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 1.2cm 1.4cm;
+  }
+</style>
+</head>
+<body>
+
+<!-- Print Bar -->
+<div class="print-bar no-print">
+  <div>
+    <div class="print-bar-title">Petunjuk Instalasi Dosman Exam</div>
+    <div class="print-bar-hint">Klik tombol untuk menyimpan sebagai PDF atau mencetak</div>
+  </div>
+  <button class="btn-pdf" onclick="window.print()">
+    &#x1F4E5; Simpan PDF / Cetak
+  </button>
+</div>
+
+<div class="page">
+
+  <!-- Header -->
+  <div class="doc-header">
+    <img src="assets/logo_sekolah.png" alt="Logo SMAN 1 Gianyar">
+    <div class="doc-header-text">
+      <h1>Petunjuk Instalasi Aplikasi Dosman Exam</h1>
+      <p>Sistem Ujian Online Anti-Kecurangan &nbsp;|&nbsp; SMAN 1 Gianyar, Bali</p>
+      <span class="doc-header-badge">&#x1F4F1; Khusus Android</span>
+    </div>
+  </div>
+
+  <div class="doc-body">
+
+    <!-- Persiapan -->
+    <div class="alert alert-blue">
+      <span class="alert-icon">&#x2139;&#xFE0F;</span>
+      <div>
+        <strong>Yang kamu butuhkan sebelum mulai:</strong><br>
+        HP Android (minimal Android 7.0) &nbsp;·&nbsp;
+        File <strong>dosman_exam_vX.X.X.apk</strong> dari guru &nbsp;·&nbsp;
+        Koneksi WiFi sekolah &nbsp;·&nbsp;
+        Baterai minimal <strong>50%</strong>
+      </div>
+    </div>
+
+    <div class="alert alert-yellow">
+      <span class="alert-icon">&#x26A0;&#xFE0F;</span>
+      <div><strong>Ikuti setiap langkah secara berurutan.</strong>
+      Jika melewati satu langkah, aplikasi mungkin tidak bisa terpasang atau tidak bisa dibuka.</div>
+    </div>
+
+    <!-- LANGKAH 1 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-number">1</div>
+        <div class="step-title">Matikan Google Play Protect</div>
+      </div>
+      <div class="step-body">
+        <div class="alert alert-blue" style="margin-bottom:14px">
+          <span class="alert-icon">&#x2139;&#xFE0F;</span>
+          <div>Play Protect memblokir aplikasi dari luar Play Store. Matikan sementara agar instalasi bisa berjalan. Bisa dinyalakan lagi setelah ujian.</div>
+        </div>
+
+        <div class="substep">
+          <div class="substep-num">1</div>
+          <div class="substep-text">Buka aplikasi <strong>Google Play Store</strong> (ikon segitiga warna-warni di layar utama).</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">2</div>
+          <div class="substep-text">Ketuk <strong>foto profil / ikon bulat</strong> di pojok <strong>kanan atas</strong> layar.
+            <span class="note">Menampilkan inisial nama atau foto Google-mu.</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">3</div>
+          <div class="substep-text">Ketuk <strong>"Play Protect"</strong> di menu yang muncul.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">4</div>
+          <div class="substep-text">Ketuk <strong>ikon roda gigi (⚙)</strong> di pojok <strong>kanan atas</strong> halaman Play Protect.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">5</div>
+          <div class="substep-text">Matikan tombol di sebelah <strong>"Pindai aplikasi dengan Play Protect"</strong>.
+            <span class="note">Tombol biru/hijau → abu-abu = berhasil dimatikan.</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">6</div>
+          <div class="substep-text">Ketuk <strong>"Nonaktifkan"</strong> pada peringatan konfirmasi.</div>
+        </div>
+
+        <div class="success-box">✅ <strong>Berhasil:</strong> Status di halaman Play Protect berubah menjadi "Play Protect nonaktif".</div>
+      </div>
+    </div>
+
+    <!-- LANGKAH 2 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-number">2</div>
+        <div class="step-title">Izinkan Instalasi dari Sumber Tidak Dikenal</div>
+      </div>
+      <div class="step-body">
+        <div class="alert alert-blue" style="margin-bottom:14px">
+          <span class="alert-icon">&#x2139;&#xFE0F;</span>
+          <div>Android hanya mengizinkan instalasi dari Play Store secara default. Kamu perlu memberi izin khusus untuk memasang file APK. <strong>Ikuti sesuai merek HP-mu:</strong></div>
+        </div>
+
+        <div class="brand-grid">
+          <div class="brand-card">
+            <div class="brand-name">&#x1F4F1; Samsung (One UI)</div>
+            <ul class="brand-steps">
+              <li>Buka <strong>Pengaturan</strong></li>
+              <li>Ketuk <strong>Biometrik &amp; Keamanan</strong></li>
+              <li>Ketuk <strong>Instal Aplikasi Tidak Dikenal</strong></li>
+              <li>Pilih <strong>My Files / File Manager</strong></li>
+              <li>Aktifkan <strong>Izinkan dari sumber ini</strong></li>
+            </ul>
+          </div>
+          <div class="brand-card">
+            <div class="brand-name">&#x1F4F1; Xiaomi / Redmi / POCO</div>
+            <ul class="brand-steps">
+              <li>Buka <strong>Pengaturan</strong></li>
+              <li>Ketuk <strong>Privasi</strong> atau <strong>Keamanan</strong></li>
+              <li>Aktifkan <strong>Sumber Tidak Dikenal</strong></li>
+              <li>Pilih <strong>File Manager</strong> jika diminta</li>
+              <li>Ketuk <strong>OKE</strong> pada peringatan</li>
+            </ul>
+          </div>
+          <div class="brand-card">
+            <div class="brand-name">&#x1F4F1; OPPO / Realme (ColorOS)</div>
+            <ul class="brand-steps">
+              <li>Buka <strong>Pengaturan</strong></li>
+              <li>Ketuk <strong>Keamanan &amp; Privasi</strong></li>
+              <li>Ketuk <strong>Pasang Aplikasi Eksternal</strong></li>
+              <li>Aktifkan izin untuk <strong>File Manager</strong></li>
+            </ul>
+          </div>
+          <div class="brand-card">
+            <div class="brand-name">&#x1F4F1; Vivo (FuntouchOS)</div>
+            <ul class="brand-steps">
+              <li>Buka <strong>Pengaturan</strong></li>
+              <li>Ketuk <strong>Keamanan Lebih Lanjut</strong></li>
+              <li>Aktifkan <strong>Sumber Tidak Dikenal</strong></li>
+              <li>Ketuk <strong>OKE</strong> pada peringatan</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="alert alert-blue" style="margin-top:14px">
+          <span class="alert-icon">💡</span>
+          <div><strong>Cara alternatif (semua merek):</strong> Saat kamu buka file APK dan muncul pesan "Sumber tidak dikenal", langsung ketuk <strong>"Pengaturan"</strong> di pesan tersebut → aktifkan izin → ketuk Kembali → ketuk Instal.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- LANGKAH 3 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-number">3</div>
+        <div class="step-title">Pasang (Install) Aplikasi</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">1</div>
+          <div class="substep-text">Buka aplikasi <strong>File Manager / Pengelola File</strong> di HP kamu.
+            <span class="note">Nama berbeda tiap merek: "My Files" (Samsung), "File Manager" (Xiaomi/OPPO), dsb.</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">2</div>
+          <div class="substep-text">Buka folder <strong>Download / Unduhan</strong> — tempat file APK tersimpan.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">3</div>
+          <div class="substep-text">Cari dan ketuk file <strong>dosman_exam_vX.X.X.apk</strong> untuk memulai instalasi.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">4</div>
+          <div class="substep-text">Jika muncul peringatan "Sumber tidak dikenal", ketuk <strong>Pengaturan</strong> → aktifkan izin → kembali → ketuk <strong>Instal</strong>.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">5</div>
+          <div class="substep-text">Ketuk tombol <strong>"Instal"</strong> di halaman detail aplikasi.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">6</div>
+          <div class="substep-text">Jika muncul peringatan <em>"Aplikasi ini mungkin berbahaya"</em> dari Play Protect, ketuk <strong>"Tetap Instal"</strong>.
+            <span class="note">Ini normal — bukan berarti berbahaya. Play Protect hanya menandai aplikasi di luar Play Store.</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">7</div>
+          <div class="substep-text">Tunggu proses instalasi selesai (10–30 detik), lalu ketuk <strong>"Selesai"</strong> — <em>jangan ketuk "Buka" dulu.</em></div>
+        </div>
+
+        <div class="success-box">✅ <strong>Berhasil:</strong> Ikon <strong>Dosman Exam</strong> muncul di layar utama atau laci aplikasi HP kamu.</div>
+      </div>
+    </div>
+
+    <!-- LANGKAH 4 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-number">4</div>
+        <div class="step-title">Buka Aplikasi &amp; Berikan Izin Do Not Disturb (DND)</div>
+      </div>
+      <div class="step-body">
+        <div class="alert alert-blue" style="margin-bottom:14px">
+          <span class="alert-icon">&#x1F515;</span>
+          <div>DND memblokir semua notifikasi dan telepon masuk agar tidak mengganggu saat ujian. Izin ini hanya perlu diberikan <strong>sekali</strong> saat pertama kali buka aplikasi.</div>
+        </div>
+
+        <div class="substep">
+          <div class="substep-num">1</div>
+          <div class="substep-text">Ketuk ikon <strong>Dosman Exam</strong> di layar utama HP untuk membuka aplikasi.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">2</div>
+          <div class="substep-text">Tunggu layar splash (logo sekolah) selesai — hanya beberapa detik.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">3</div>
+          <div class="substep-text">Akan muncul layar <strong>"Izin Diperlukan"</strong> berlatar gelap dengan ikon merah. Ketuk tombol biru <strong>"Izinkan Akses DND"</strong>.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">4</div>
+          <div class="substep-text">HP membuka halaman <strong>Pengaturan → Akses Notifikasi</strong>. Gulir daftar dan cari <strong>"Dosman Exam"</strong>.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">5</div>
+          <div class="substep-text">Ketuk nama <strong>"Dosman Exam"</strong>, lalu aktifkan tombol toggle.
+            <span class="note">Jika muncul konfirmasi, ketuk "Izinkan" / "Allow".</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">6</div>
+          <div class="substep-text">Tekan tombol <strong>Kembali (←)</strong> beberapa kali hingga kembali ke aplikasi Dosman Exam.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">7</div>
+          <div class="substep-text">Aplikasi otomatis mendeteksi izin sudah diberikan dan berpindah ke halaman <strong>Login</strong>.</div>
+        </div>
+
+        <div class="success-box">✅ <strong>Berhasil:</strong> Layar berubah otomatis dari "Izin Diperlukan" ke halaman Login.</div>
+      </div>
+    </div>
+
+    <!-- LANGKAH 5 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-number">5</div>
+        <div class="step-title">Login ke Akun Moodle</div>
+      </div>
+      <div class="step-body">
+        <div class="substep">
+          <div class="substep-num">1</div>
+          <div class="substep-text">Di halaman <strong>Login Siswa</strong>, ketuk kolom <strong>Username</strong> dan ketik username akun Moodlemu.
+            <span class="note">Username biasanya berupa NIS atau nama tanpa spasi — tanyakan guru jika tidak tahu.</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">2</div>
+          <div class="substep-text">Ketuk kolom <strong>Password</strong> dan ketik password akun Moodlemu.
+            <span class="note">Ketuk ikon mata (👁) di sisi kanan untuk memastikan yang diketik sudah benar.</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">3</div>
+          <div class="substep-text">Ketuk tombol biru <strong>"Masuk ke Ujian"</strong> dan tunggu beberapa detik.</div>
+        </div>
+
+        <div class="section-label" style="margin-top:16px">Pesan Error &amp; Solusinya</div>
+        <table>
+          <thead><tr><th>Pesan Error</th><th>Artinya</th><th>Solusi</th></tr></thead>
+          <tbody>
+            <tr><td>"Username atau password salah"</td><td>Kombinasi tidak cocok</td><td>Cek penulisan, perhatikan huruf besar/kecil</td></tr>
+            <tr><td>"Akun Anda ditangguhkan"</td><td>Akun diblokir</td><td>Hubungi pengawas ruangan segera</td></tr>
+            <tr><td>"Layanan ujian tidak tersedia"</td><td>Server bermasalah</td><td>Cek koneksi WiFi, hubungi pengawas</td></tr>
+            <tr><td>Aplikasi diam / loading terus</td><td>Koneksi internet lemah</td><td>Reconnect WiFi, coba login lagi</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LANGKAH 6 -->
+    <div class="step">
+      <div class="step-header">
+        <div class="step-number">6</div>
+        <div class="step-title">Izinkan Aplikasi Disematkan (Terkunci)</div>
+      </div>
+      <div class="step-body">
+        <div class="alert alert-blue" style="margin-bottom:14px">
+          <span class="alert-icon">&#x1F512;</span>
+          <div>Setelah login berhasil, Android akan meminta konfirmasi untuk mengunci layar pada aplikasi ujian saja. Ini mencegah siswa beralih ke aplikasi lain selama ujian.</div>
+        </div>
+
+        <div class="substep">
+          <div class="substep-num">1</div>
+          <div class="substep-text">Akan muncul pesan dari Android, contohnya:
+            <span class="note">"Aplikasi ini akan disematkan" &nbsp;·&nbsp; "Mulai menyematkan?" &nbsp;·&nbsp; "Sematkan aplikasi ini?"</span>
+          </div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">2</div>
+          <div class="substep-text">Ketuk tombol <strong>"OKE"</strong> / <strong>"Mulai"</strong> / <strong>"Sematkan"</strong> / <strong>"Pin"</strong>.</div>
+        </div>
+        <div class="substep">
+          <div class="substep-num">3</div>
+          <div class="substep-text">Jika pesan muncul berulang kali, ketuk <strong>OKE</strong> setiap kali sampai layar ujian tampil penuh.
+            <span class="note">Ini normal — terus ketuk OKE hingga aplikasi benar-benar terkunci.</span>
+          </div>
+        </div>
+
+        <div class="success-box">✅ <strong>Aplikasi siap digunakan!</strong> HP terkunci hanya pada Dosman Exam. Tombol Home dan Recent Apps tidak berfungsi.</div>
+      </div>
+    </div>
+
+    <!-- Aturan saat ujian -->
+    <div class="section-label">Selama Ujian Berlangsung</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px">
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#166534;margin-bottom:6px">✅ Yang Boleh</div>
+        <ul class="checklist">
+          <li class="ok">Mengerjakan soal di halaman Moodle</li>
+          <li class="ok">Scroll halaman soal ke atas/bawah</li>
+          <li class="ok">Memilih / mengisi jawaban</li>
+          <li class="ok">Sambungkan ulang ke WiFi (tombol WiFi di navbar)</li>
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:12px;font-weight:700;color:#991b1b;margin-bottom:6px">❌ Yang Tidak Bisa Dilakukan</div>
+        <ul class="checklist">
+          <li class="no">Beralih ke aplikasi lain</li>
+          <li class="no">Screenshot / merekam layar</li>
+          <li class="no">Menerima telepon / notifikasi</li>
+          <li class="no">Keluar tanpa password pengawas</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="warn-box">
+      🚨 <strong>Peringatan:</strong> Jika kamu mencoba mencabut penguncian atau keluar paksa dari aplikasi,
+      sistem akan <strong>otomatis mensuspend akun</strong> dan <strong>alarm berbunyi</strong>. Pengawas akan
+      mengetahuinya secara real-time. Jika ada kendala teknis, <strong>angkat tangan</strong> dan minta bantuan pengawas.
+    </div>
+
+    <!-- Keluar -->
+    <div class="section-label" style="margin-top:24px">Cara Keluar Setelah Ujian Selesai</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:24px">
+      <div class="substep">
+        <div class="substep-num">1</div>
+        <div class="substep-text">Ketuk tombol <strong>"Keluar"</strong> di pojok kanan atas aplikasi.</div>
+      </div>
+      <div class="substep">
+        <div class="substep-num">2</div>
+        <div class="substep-text">Masukkan <strong>password keluar</strong> yang diberikan pengawas.</div>
+      </div>
+      <div class="substep">
+        <div class="substep-num">3</div>
+        <div class="substep-text">Ketuk <strong>"Konfirmasi"</strong> — aplikasi menutup sendiri dan HP kembali normal.</div>
+      </div>
+    </div>
+
+    <!-- Troubleshooting -->
+    <div class="section-label">Masalah Umum &amp; Solusi</div>
+    <table style="margin-bottom:0">
+      <thead><tr><th>Masalah</th><th>Kemungkinan Penyebab</th><th>Solusi</th></tr></thead>
+      <tbody>
+        <tr><td>APK tidak bisa diinstal</td><td>Play Protect aktif / izin belum diberikan</td><td>Ulangi Langkah 1 &amp; 2</td></tr>
+        <tr><td>"Aplikasi mungkin berbahaya"</td><td>Play Protect mendeteksi APK luar Play Store</td><td>Ketuk "Tetap Instal"</td></tr>
+        <tr><td>"Parsing Error"</td><td>File APK tidak terunduh sempurna</td><td>Hapus &amp; unduh ulang APK</td></tr>
+        <tr><td>Layar DND tidak hilang</td><td>Izin diberikan ke aplikasi yang salah</td><td>Pastikan aktifkan izin untuk "Dosman Exam", lalu tekan Kembali</td></tr>
+        <tr><td>Akun tersuspend tiba-tiba</td><td>Keluar paksa / beralih aplikasi</td><td>Angkat tangan, beritahu pengawas untuk membuka akun</td></tr>
+        <tr><td>HP panas / baterai cepat habis</td><td>Banyak proses berjalan</td><td>Matikan Bluetooth &amp; GPS, kurangi kecerahan layar</td></tr>
+      </tbody>
+    </table>
+
+  </div><!-- /doc-body -->
+
+  <div class="doc-footer">
+    <div>Dosman Exam &nbsp;·&nbsp; SMAN 1 Gianyar, Bali</div>
+    <div>Dokumen ini hanya untuk keperluan ujian resmi sekolah</div>
+  </div>
+
+</div><!-- /page -->
+
+</body>
+</html>

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<XMLDB PATH="mod/quiz/accessrule/dosmanexam/db" VERSION="20260422"
+    COMMENT="Tabel pengaturan Dosman Exam browser requirement per quiz"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="../../../../../lib/xmldb/xmldb.xsd">
+  <TABLES>
+    <TABLE NAME="quizaccess_dosmanexam" COMMENT="Menyimpan pengaturan wajib browser Dosman Exam per quiz">
+      <FIELDS>
+        <FIELD NAME="id"             TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="true"/>
+        <FIELD NAME="quizid"         TYPE="int"  LENGTH="10" NOTNULL="true"  SEQUENCE="false"/>
+        <FIELD NAME="requirebrowser" TYPE="int"  LENGTH="1"  NOTNULL="true"  DEFAULT="0" SEQUENCE="false"
+               COMMENT="1 = wajib pakai Dosman Exam / SEB iOS, 0 = bebas"/>
+      </FIELDS>
+      <KEYS>
+        <KEY NAME="primary" TYPE="primary" FIELDS="id"/>
+        <KEY NAME="quizid"  TYPE="unique"  FIELDS="quizid"/>
+      </KEYS>
+    </TABLE>
+  </TABLES>
+</XMLDB>

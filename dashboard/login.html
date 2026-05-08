@@ -1,0 +1,517 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Login — Dosman Exam SMAN 1 Gianyar</title>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            background: #f0f4f8;
+        }
+
+        /* ── PANEL KIRI ─────────────────────────────────── */
+        .left {
+            width: 45%;
+            min-height: 100vh;
+            background: linear-gradient(160deg, #0f2044 0%, #1a3a6e 55%, #1e4fa3 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 48px 40px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Lingkaran dekoratif di background */
+        .left::before {
+            content: '';
+            position: absolute;
+            width: 380px; height: 380px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.07);
+            top: -80px; right: -80px;
+        }
+        .left::after {
+            content: '';
+            position: absolute;
+            width: 280px; height: 280px;
+            border-radius: 50%;
+            border: 1px solid rgba(255,255,255,0.06);
+            bottom: -60px; left: -60px;
+        }
+
+        .school-logo {
+            width: 108px; height: 108px;
+            background: rgba(255,255,255,0.12);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 24px;
+            border: 2px solid rgba(255,255,255,0.25);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            flex-shrink: 0;
+        }
+        /* Coba load logo dari Moodle server; jika gagal tetap kelihatan bagus */
+        .school-logo img {
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            object-fit: contain;
+        }
+
+        .school-name {
+            color: #fff;
+            font-size: 22px;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+            text-align: center;
+            margin-bottom: 4px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        .school-sub {
+            color: rgba(255,255,255,0.65);
+            font-size: 13px;
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+        .divider {
+            width: 48px; height: 3px;
+            background: rgba(255,255,255,0.35);
+            border-radius: 2px;
+            margin: 0 auto 28px;
+        }
+
+        .visi-box {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 14px;
+            padding: 22px 24px;
+            margin-bottom: 32px;
+            width: 100%;
+            max-width: 340px;
+            backdrop-filter: blur(4px);
+        }
+        .visi-label {
+            color: rgba(255,255,255,0.5);
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .visi-text {
+            color: rgba(255,255,255,0.88);
+            font-size: 13px;
+            line-height: 1.7;
+            font-style: italic;
+        }
+
+        .btn-home {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 22px;
+            background: rgba(255,255,255,0.12);
+            border: 1.5px solid rgba(255,255,255,0.3);
+            border-radius: 50px;
+            color: rgba(255,255,255,0.9);
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s, border-color 0.2s;
+            cursor: pointer;
+        }
+        .btn-home:hover {
+            background: rgba(255,255,255,0.2);
+            border-color: rgba(255,255,255,0.5);
+            color: #fff;
+        }
+        .btn-home svg { flex-shrink: 0; }
+
+        .left-footer {
+            position: absolute;
+            bottom: 20px;
+            color: rgba(255,255,255,0.3);
+            font-size: 11px;
+        }
+
+        /* ── PANEL KANAN ────────────────────────────────── */
+        .right {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 24px;
+            background: #f0f4f8;
+        }
+
+        .form-wrap {
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .form-header {
+            margin-bottom: 32px;
+        }
+        .form-header .badge {
+            display: inline-block;
+            background: #dbeafe;
+            color: #1d4ed8;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 50px;
+            margin-bottom: 12px;
+        }
+        .form-header h1 {
+            font-size: 26px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 6px;
+        }
+        .form-header p {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 18px;
+            padding: 32px 30px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        /* Alert */
+        .alert {
+            display: none;
+            padding: 11px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .alert.error  { background:#fef2f2; border:1px solid #fecaca; color:#dc2626; }
+        .alert.success{ background:#f0fdf4; border:1px solid #bbf7d0; color:#16a34a; }
+
+        /* Input group */
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #334155;
+            margin-bottom: 7px;
+        }
+        .input-wrap {
+            display: flex;
+            align-items: center;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 10px;
+            background: #f8fafc;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+        .input-wrap:focus-within {
+            border-color: #2563eb;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(37,99,235,0.1);
+        }
+        .input-wrap .input-icon {
+            flex-shrink: 0;
+            padding: 0 10px 0 13px;
+            color: #94a3b8;
+            line-height: 0;
+        }
+        .input-wrap input {
+            flex: 1;
+            border: none;
+            outline: none;
+            background: transparent;
+            padding: 11px 8px 11px 0;
+            font-size: 14px;
+            color: #1e293b;
+            min-width: 0;
+        }
+        .input-wrap input::placeholder { color: #94a3b8; }
+
+        /* Show/hide password toggle */
+        .pwd-toggle {
+            flex-shrink: 0;
+            background: none;
+            border: none;
+            border-left: 1px solid #e2e8f0;
+            padding: 0 12px;
+            height: 100%;
+            min-height: 42px;
+            cursor: pointer;
+            color: #94a3b8;
+            line-height: 0;
+            border-radius: 0 9px 9px 0;
+            transition: color 0.15s, background 0.15s;
+        }
+        .pwd-toggle:hover { color: #475569; background: #f1f5f9; }
+
+        /* Login button */
+        .btn-login {
+            width: 100%;
+            padding: 13px;
+            background: linear-gradient(135deg, #1d4ed8, #2563eb);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s;
+            box-shadow: 0 4px 14px rgba(37,99,235,0.35);
+            margin-top: 6px;
+        }
+        .btn-login:hover:not(:disabled) {
+            opacity: 0.93;
+            box-shadow: 0 6px 20px rgba(37,99,235,0.4);
+        }
+        .btn-login:active:not(:disabled) { transform: scale(0.99); }
+        .btn-login:disabled { opacity: 0.6; cursor: not-allowed; box-shadow: none; }
+
+        .form-footer {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 12px;
+            color: #94a3b8;
+        }
+
+        /* Spinner */
+        .spinner {
+            display: inline-block; width: 14px; height: 14px;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            margin-right: 6px; vertical-align: middle;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── RESPONSIVE ─────────────────────────────────── */
+        @media (max-width: 768px) {
+            body { flex-direction: column; }
+            .left {
+                width: 100%;
+                min-height: auto;
+                padding: 36px 24px;
+            }
+            .left::before, .left::after { display: none; }
+            .visi-box { max-width: 100%; }
+            .left-footer { display: none; }
+            .right { padding: 28px 20px; }
+        }
+    </style>
+</head>
+<body>
+
+<!-- ══ PANEL KIRI ══════════════════════════════════════════ -->
+<div class="left">
+
+    <!-- Logo sekolah -->
+    <div class="school-logo">
+        <img
+            src="assets/logo_sekolah.png"
+            alt="Logo SMAN 1 Gianyar"
+        />
+    </div>
+
+    <div class="school-name">SMAN 1 GIANYAR</div>
+    <div class="school-sub">Bali — Nusa Tenggara</div>
+
+    <div class="divider"></div>
+
+    <!-- Visi sekolah -->
+    <div class="visi-box">
+        <div class="visi-label">Visi Sekolah</div>
+        <div class="visi-text">
+            "Terwujudnya insan yang beriman, berintegritas, berprestasi, dan berwawasan lingkungan berdasarkan kearifan lokal budaya Bali."
+        </div>
+    </div>
+
+    <!-- Tombol ke LMS -->
+    <a href="https://lms.sman1-gianyar.sch.id" target="_blank" class="btn-home">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+        Kembali ke LMS
+    </a>
+
+    <div class="left-footer">Dosman Exam &copy; 2025 SMAN 1 Gianyar</div>
+</div>
+
+<!-- ══ PANEL KANAN ═════════════════════════════════════════ -->
+<div class="right">
+    <div class="form-wrap">
+
+        <div class="form-header">
+            <div class="badge">&#x1F4CB; Dashboard Guru</div>
+            <h1>Selamat Datang</h1>
+            <p>Login untuk memantau ujian siswa secara real-time</p>
+        </div>
+
+        <div class="card">
+            <div class="alert error"   id="alert-error"></div>
+            <div class="alert success" id="alert-success"></div>
+
+            <!-- Username -->
+            <div class="form-group">
+                <label for="username">Username Moodle</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </span>
+                    <input type="text" id="username" placeholder="Masukkan username"
+                           autocomplete="username" autofocus/>
+                </div>
+            </div>
+
+            <!-- Password -->
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="input-wrap">
+                    <span class="input-icon">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+                        </svg>
+                    </span>
+                    <input type="password" id="password" placeholder="Masukkan password"
+                           autocomplete="current-password"/>
+                    <button type="button" class="pwd-toggle" onclick="togglePwd()" id="pwd-eye" title="Tampilkan">
+                        <svg id="eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <button class="btn-login" id="btn-login" onclick="doLogin()">
+                Masuk ke Dashboard
+            </button>
+
+            <div class="form-footer">
+                Dosman Exam v2.1.2 &mdash; Sistem Anti-Kecurangan Ujian Online
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+var MOODLE_URL = 'https://lms.sman1-gianyar.sch.id';
+var _pwdVisible = false;
+
+if (localStorage.getItem('dosman_token')) {
+    window.location.href = 'index.html';
+}
+
+function togglePwd() {
+    _pwdVisible = !_pwdVisible;
+    var inp = document.getElementById('password');
+    inp.type = _pwdVisible ? 'text' : 'password';
+    document.getElementById('eye-icon').innerHTML = _pwdVisible
+        ? '<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/>'
+        : '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>';
+}
+
+function showError(msg) {
+    var el = document.getElementById('alert-error');
+    el.innerHTML = '&#x274C;&nbsp;' + msg;
+    el.style.display = 'block';
+    document.getElementById('alert-success').style.display = 'none';
+}
+function showSuccess(msg) {
+    var el = document.getElementById('alert-success');
+    el.innerHTML = '&#x2705;&nbsp;' + msg;
+    el.style.display = 'block';
+    document.getElementById('alert-error').style.display = 'none';
+}
+function hideAlerts() {
+    document.getElementById('alert-error').style.display   = 'none';
+    document.getElementById('alert-success').style.display = 'none';
+}
+function setLoading(v) {
+    var btn = document.getElementById('btn-login');
+    btn.disabled = v;
+    btn.innerHTML = v
+        ? '<span class="spinner"></span> Memproses...'
+        : 'Masuk ke Dashboard';
+}
+
+function buildUrl(endpoint, params) {
+    var query = new URLSearchParams(params);
+    if (window.location.hostname === 'lms.sman1-gianyar.sch.id') {
+        query.set('_endpoint', endpoint);
+        return 'proxy.php?' + query.toString();
+    }
+    var path = endpoint === 'token' ? '/login/token.php' : '/webservice/rest/server.php';
+    return MOODLE_URL + path + '?' + query.toString();
+}
+
+async function doLogin() {
+    hideAlerts();
+    var username = document.getElementById('username').value.trim();
+    var password = document.getElementById('password').value;
+    if (!username) { showError('Username wajib diisi'); return; }
+    if (!password) { showError('Password wajib diisi'); return; }
+    setLoading(true);
+    try {
+        var services   = ['dosman_ujian_mobile', 'moodle_mobile_app'];
+        var lastError  = 'Login gagal. Periksa username dan password.';
+        var token      = null;
+        for (var i = 0; i < services.length; i++) {
+            try {
+                var res  = await fetch(buildUrl('token', { username: username, password: password, service: services[i] }));
+                var data = await res.json();
+                if (data.token) { token = data.token; break; }
+                if (data.error) lastError = data.error;
+            } catch(e) { lastError = e.message; }
+        }
+        if (!token) { showError(lastError); return; }
+
+        // Cek role — siswa tidak boleh masuk dashboard
+        var roleRes  = await fetch('../local/dosman_ujian/check_dashboard_role.php?token=' + encodeURIComponent(token));
+        var roleData = await roleRes.json();
+        if (!roleData.allowed) {
+            showError(roleData.reason || 'Akun ini tidak diizinkan mengakses dashboard.');
+            return;
+        }
+
+        showSuccess('Login berhasil! Mengalihkan...');
+        var infoRes  = await fetch(buildUrl('webservice', { wstoken: token, wsfunction: 'core_webservice_get_site_info', moodlewsrestformat: 'json' }));
+        var infoData = await infoRes.json();
+        var fullname = (infoData && infoData.fullname) ? infoData.fullname : username;
+        var userid   = (infoData && infoData.userid)   ? infoData.userid   : 0;
+
+        localStorage.setItem('dosman_token',      token);
+        localStorage.setItem('dosman_moodle_url', MOODLE_URL);
+        localStorage.setItem('dosman_username',   fullname);
+        localStorage.setItem('dosman_userid',     userid);
+
+        setTimeout(function () { window.location.href = 'index.html'; }, 600);
+    } catch(e) {
+        showError('Tidak dapat terhubung ke server. Pastikan koneksi internet aktif.');
+    } finally {
+        setLoading(false);
+    }
+}
+
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') doLogin();
+});
+</script>
+</body>
+</html>

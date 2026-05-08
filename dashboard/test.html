@@ -1,0 +1,272 @@
+﻿<!doctype html>
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Dosman - Diagnostik</title>
+        <style>
+            body {
+                font-family: monospace;
+                padding: 20px;
+                background: #1e3a5f;
+                color: #fff;
+            }
+            .box {
+                background: rgba(255, 255, 255, 0.1);
+                padding: 15px;
+                border-radius: 8px;
+                margin: 10px 0;
+            }
+            .ok {
+                color: #4ade80;
+            }
+            .fail {
+                color: #f87171;
+            }
+            .info {
+                color: #93c5fd;
+            }
+            button {
+                padding: 10px 20px;
+                background: #2563eb;
+                color: white;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 13px;
+                margin: 4px;
+            }
+            button:hover {
+                background: #1d4ed8;
+            }
+            pre {
+                background: rgba(0, 0, 0, 0.3);
+                padding: 10px;
+                border-radius: 4px;
+                overflow-x: auto;
+                font-size: 12px;
+                white-space: pre-wrap;
+            }
+        </style>
+    </head>
+    <body>
+        <h2>&#x1F527; Dosman Ujian - Diagnostik</h2>
+
+        <div class="box">
+            <b>URL:</b> <span id="loc" class="info"></span><br />
+            <b>Token:</b> <span id="tok" class="info"></span><br />
+            <b>UserID tersimpan:</b> <span id="uid" class="info"></span><br />
+            <b>Username:</b> <span id="uname" class="info"></span>
+        </div>
+
+        <button onclick="testProxy()">&#x1F527; Test Koneksi Proxy</button>
+        <button onclick="testSiteInfo()">
+            &#x1F310; Test Site Info + UserID
+        </button>
+        <button onclick="testEnrolCourses()">
+            &#x1F4DA; Test Enrolled Courses
+        </button>
+        <button onclick="testAllCourses()">
+            &#x1F4DA; Test All Courses (admin)
+        </button>
+        <button onclick="clearLog()">&#x1F9F9; Clear</button>
+
+        <div id="log"></div>
+
+        <script>
+            document.getElementById("loc").textContent =
+                window.location.hostname;
+            document.getElementById("tok").textContent =
+                (localStorage.getItem("dosman_token") || "TIDAK ADA").substring(
+                    0,
+                    20,
+                ) + "...";
+            document.getElementById("uid").textContent =
+                localStorage.getItem("dosman_userid") || "TIDAK ADA";
+            document.getElementById("uname").textContent =
+                localStorage.getItem("dosman_username") || "TIDAK ADA";
+
+            var TOKEN = localStorage.getItem("dosman_token") || "";
+            var MOODLE = "https://lms.sman1-gianyar.sch.id";
+
+            function useProxy() {
+                return window.location.hostname === "lms.sman1-gianyar.sch.id";
+            }
+
+            function buildUrl(endpoint, params) {
+                var q = new URLSearchParams(params);
+                if (useProxy()) {
+                    q.set("_endpoint", endpoint);
+                    return "proxy.php?" + q.toString();
+                }
+                var path =
+                    endpoint === "token"
+                        ? "/login/token.php"
+                        : "/webservice/rest/server.php";
+                return MOODLE + path + "?" + q.toString();
+            }
+
+            function log(title, content, ok) {
+                document.getElementById("log").innerHTML +=
+                    '<div class="box"><b class="' +
+                    (ok === true ? "ok" : ok === false ? "fail" : "info") +
+                    '">' +
+                    (ok === true
+                        ? "&#x2705;"
+                        : ok === false
+                          ? "&#x274C;"
+                          : "&#x1F4CB;") +
+                    " " +
+                    title +
+                    "</b><pre>" +
+                    (typeof content === "string"
+                        ? content
+                        : JSON.stringify(content, null, 2)) +
+                    "</pre></div>";
+            }
+            function clearLog() {
+                document.getElementById("log").innerHTML = "";
+            }
+
+            async function testProxy() {
+                try {
+                    var url = "proxy.php?_endpoint=test";
+                    var res = await fetch(url);
+                    var data = await res.json();
+                    if (data.status === "ok") {
+                        log(
+                            "Proxy OK — v" + data.proxy_ver,
+                            "PHP: " +
+                                data.php_version +
+                                "\ncURL: " +
+                                data.curl +
+                                "\nallow_url_fopen: " +
+                                data.fopen +
+                                "\nMoodle URL: " +
+                                data.moodle_url,
+                            true,
+                        );
+                    } else {
+                        log("Proxy ERROR", data, false);
+                    }
+                } catch (e) {
+                    log(
+                        "Proxy GAGAL — file proxy.php tidak ditemukan?",
+                        e.message,
+                        false,
+                    );
+                }
+            }
+
+            async function testSiteInfo() {
+                try {
+                    var url = buildUrl("webservice", {
+                        wstoken: TOKEN,
+                        wsfunction: "core_webservice_get_site_info",
+                        moodlewsrestformat: "json",
+                    });
+                    var res = await fetch(url);
+                    var data = await res.json();
+                    if (data.exception) {
+                        log("Site Info - ERROR", data, false);
+                        return;
+                    }
+                    localStorage.setItem("dosman_userid", data.userid);
+                    localStorage.setItem("dosman_username", data.fullname);
+                    document.getElementById("uid").textContent = data.userid;
+                    document.getElementById("uname").textContent =
+                        data.fullname;
+                    log(
+                        "Site Info OK",
+                        "Site: " +
+                            data.sitename +
+                            "\nUser: " +
+                            data.fullname +
+                            "\nUserID: " +
+                            data.userid +
+                            "\nMoodle: " +
+                            data.release,
+                        true,
+                    );
+                } catch (e) {
+                    log("Site Info GAGAL", e.message, false);
+                }
+            }
+
+            async function testEnrolCourses() {
+                var uid = localStorage.getItem("dosman_userid") || 0;
+                if (!uid || uid == 0) {
+                    log(
+                        "Enrolled Courses",
+                        'UserID belum ada! Jalankan "Test Site Info" dulu.',
+                        false,
+                    );
+                    return;
+                }
+                try {
+                    var url = buildUrl("webservice", {
+                        wstoken: TOKEN,
+                        wsfunction: "core_enrol_get_users_courses",
+                        moodlewsrestformat: "json",
+                        userid: uid,
+                    });
+                    var res = await fetch(url);
+                    var data = await res.json();
+                    if (data.exception) {
+                        log("Enrolled Courses - ERROR Moodle", data, false);
+                        return;
+                    }
+                    if (!Array.isArray(data)) {
+                        log("Enrolled Courses - Bukan array", data, false);
+                        return;
+                    }
+                    log(
+                        "Enrolled Courses (" + data.length + " course)",
+                        data
+                            .map(function (c) {
+                                return c.id + " - " + c.fullname;
+                            })
+                            .join("\n") ||
+                            "KOSONG - user tidak terdaftar di course manapun!",
+                        data.length > 0,
+                    );
+                } catch (e) {
+                    log("Enrolled Courses GAGAL", e.message, false);
+                }
+            }
+
+            async function testAllCourses() {
+                try {
+                    var url = buildUrl("webservice", {
+                        wstoken: TOKEN,
+                        wsfunction: "core_course_get_courses",
+                        moodlewsrestformat: "json",
+                    });
+                    var res = await fetch(url);
+                    var data = await res.json();
+                    if (data.exception) {
+                        log("All Courses - ERROR Moodle", data, false);
+                        return;
+                    }
+                    if (!Array.isArray(data)) {
+                        log("All Courses - Bukan array", data, false);
+                        return;
+                    }
+                    var filtered = data.filter(function (c) {
+                        return c.id > 1;
+                    });
+                    log(
+                        "All Courses (" + filtered.length + " course)",
+                        filtered
+                            .map(function (c) {
+                                return c.id + " - " + c.fullname;
+                            })
+                            .join("\n") || "KOSONG",
+                        filtered.length > 0,
+                    );
+                } catch (e) {
+                    log("All Courses GAGAL", e.message, false);
+                }
+            }
+        </script>
+    </body>
+</html>
