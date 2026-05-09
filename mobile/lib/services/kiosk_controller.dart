@@ -96,6 +96,16 @@ class KioskController {
   bool get active     => _active;
   bool get inExamMode => _inExamMode;
 
+  /// Waktu login (lock dipanggil). Dipakai untuk grace period 10 menit
+  /// agar siswa tidak tersuspend akibat notif/dialog sistem saat baru masuk.
+  DateTime? _sessionStartedAt;
+
+  /// True jika masih dalam 10 menit pertama sejak login.
+  bool get isInGracePeriod {
+    if (_sessionStartedAt == null) return false;
+    return DateTime.now().difference(_sessionStartedAt!).inMinutes < 10;
+  }
+
   final List<void Function()> _listeners = [];
 
   void addListener(void Function() cb)    => _listeners.add(cb);
@@ -130,8 +140,9 @@ class KioskController {
     try { await _channel.invokeMethod('enterLockTask'); }    catch (_) {}
     try { await _channel.invokeMethod('lockBackButton'); }   catch (_) {}
     try { await _channel.invokeMethod('keepScreenOn'); }     catch (_) {}
-    _active     = true;
-    _inExamMode = false;
+    _active           = true;
+    _inExamMode       = false;
+    _sessionStartedAt = DateTime.now(); // mulai hitung grace period 10 menit
     _notify();
   }
 
@@ -141,8 +152,9 @@ class KioskController {
     try { await _channel.invokeMethod('disableLockdown'); }   catch (_) {}
     try { await _channel.invokeMethod('unlockBackButton'); }  catch (_) {}
     try { await _channel.invokeMethod('clearScreenOn'); }     catch (_) {}
-    _active     = false;
-    _inExamMode = false;
+    _active           = false;
+    _inExamMode       = false;
+    _sessionStartedAt = null;
     _notify();
   }
 
@@ -237,10 +249,14 @@ class KioskController {
   }
 
   /// Buka halaman pengaturan DND agar siswa/admin bisa memberikan izin.
-  Future<void> openDndSettings() async {
+  /// Return true jika berhasil membuka Settings, false jika semua intent gagal.
+  Future<bool> openDndSettings() async {
     try {
-      await _channel.invokeMethod('openDndSettings');
-    } catch (_) {}
+      final res = await _channel.invokeMethod<bool>('openDndSettings');
+      return res ?? false;
+    } catch (_) {
+      return false;
+    }
   }
 
   /// Ambil password keluar dari endpoint Moodle (API key statis).

@@ -462,6 +462,20 @@ var Dashboard = {
     document.querySelectorAll('#alert-wrap .alert-item').forEach(function(e){e.remove();});
 
     this.showPage('page-monitor');
+
+    // Restore tab monitor terakhir yang aktif (sessions / completed / logs)
+    (function () {
+      var saved;
+      try { saved = localStorage.getItem('dosman_monitor_tab'); } catch (_) {}
+      var tab = (saved === 'completed' || saved === 'logs') ? saved : 'sessions';
+      document.querySelectorAll('.tab-btn').forEach(function (b) { b.classList.remove('active'); });
+      document.querySelectorAll('.tab-panel').forEach(function (p) { p.style.display = 'none'; });
+      var btn   = document.querySelector('.tab-btn[data-tab="' + tab + '"]');
+      var panel = document.getElementById('tab-' + tab);
+      if (btn)   btn.classList.add('active');
+      if (panel) panel.style.display = 'block';
+    })();
+
     this.fetchData();
     this.startAutoRefresh();
   },
@@ -1248,6 +1262,7 @@ var Dashboard = {
         document.querySelectorAll('.tab-panel').forEach(function(p) { p.style.display = 'none'; });
         var panel = document.getElementById('tab-' + this.dataset.tab);
         if (panel) panel.style.display = 'block';
+        try { localStorage.setItem('dosman_monitor_tab', this.dataset.tab); } catch (_) {}
       });
     });
     document.querySelectorAll('.admin-tab-btn').forEach(function (btn) {
@@ -1351,9 +1366,12 @@ var AdminCourseTabs = {
       LoginStatus.load();
       setTimeout(function () { LoginStatus.forceResetSearch(); }, 250);
 
-      // Langsung tampilkan halaman Sedang Kuis sebagai default
+      // Tampilkan sub-halaman login terakhir yang dibuka (default: Sedang Kuis)
       if (typeof Dashboard !== 'undefined' && Dashboard.showPage) {
-        Dashboard.showPage('page-login-quiz');
+        var savedSub;
+        try { savedSub = localStorage.getItem('dosman_login_subpage'); } catch (_) {}
+        var subpageMap = { quiz: 'page-login-quiz', active: 'page-login-active', suspended: 'page-login-suspended' };
+        Dashboard.showPage(subpageMap[savedSub] || 'page-login-quiz');
       }
     }
 

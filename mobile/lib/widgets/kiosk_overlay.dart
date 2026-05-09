@@ -153,46 +153,24 @@ class _FloatingExitButtonState extends State<_FloatingExitButton> {
 
   @override
   Widget build(BuildContext context) {
-    final top = MediaQuery.of(context).padding.top + 6;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
     return Positioned(
-      top: top,
-      right: 10,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _onPressed,
-          borderRadius: BorderRadius.circular(20),
-          child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-            decoration: BoxDecoration(
-              color: const Color(0xFFDC2626).withValues(alpha: 0.92),
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.28),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.logout, color: Colors.white, size: 14),
-                SizedBox(width: 5),
-                Text(
-                  'Keluar',
-                  style: TextStyle(
-                    color:         Colors.white,
-                    fontSize:      12,
-                    fontWeight:    FontWeight.w700,
-                    letterSpacing: 0.2,
-                  ),
-                ),
-              ],
-            ),
-          ),
+      bottom: bottomPad + 16,
+      left: 16,
+      child: FloatingActionButton.extended(
+        heroTag: 'kiosk_exit_btn',
+        onPressed: _onPressed,
+        backgroundColor: Colors.red.withValues(alpha: 0.15),
+        foregroundColor: Colors.red.withValues(alpha: 0.85),
+        elevation: 2,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+        ),
+        icon: const Icon(Icons.exit_to_app_rounded, size: 16),
+        label: const Text(
+          'Keluar',
+          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
         ),
       ),
     );

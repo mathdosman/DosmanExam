@@ -318,6 +318,10 @@
                 <select id="filter-quiz-class" class="filter-select" title="Filter berdasarkan kelas">
                     <option value="">&#x1F3F7;&#xFE0F; Semua Kelas</option>
                 </select>
+                <select id="filter-quiz-subclass" class="filter-select" title="Filter sub-kelas" style="display:none">
+                    <option value="">Semua Sub-Kelas</option>
+                </select>
+                <button type="button" id="quiz-reset-subclass" class="btn-generate" data-action="quiz-reset-subclass" style="display:none" title="Tampilkan semua siswa kelas ini">&#x21BA; Semua</button>
                 <button type="button" class="btn-generate" data-action="quiz-clear-search">
                     &#x2715; Reset Filter
                 </button>
@@ -386,6 +390,10 @@
                 <select id="filter-login-class" class="filter-select" title="Filter berdasarkan kolom Department di profil Moodle">
                     <option value="">&#x1F3F7;&#xFE0F; Semua Kelas</option>
                 </select>
+                <select id="filter-login-subclass" class="filter-select" title="Filter sub-kelas" style="display:none">
+                    <option value="">Semua Sub-Kelas</option>
+                </select>
+                <button type="button" id="login-reset-subclass" class="btn-generate" data-action="login-reset-subclass" style="display:none" title="Tampilkan semua siswa kelas ini">&#x21BA; Semua</button>
                 <button type="button" class="btn-generate" data-action="login-clear-search">&#x2715; Reset Filter</button>
             </div>
         </div>
@@ -439,6 +447,10 @@
                 <select id="filter-suspended-class" class="filter-select" title="Filter berdasarkan kelas / Department">
                     <option value="">&#x1F3F7;&#xFE0F; Semua Kelas</option>
                 </select>
+                <select id="filter-suspended-subclass" class="filter-select" title="Filter sub-kelas" style="display:none">
+                    <option value="">Semua Sub-Kelas</option>
+                </select>
+                <button type="button" id="suspended-reset-subclass" class="btn-generate" data-action="suspended-reset-subclass" style="display:none" title="Tampilkan semua siswa kelas ini">&#x21BA; Semua</button>
                 <button type="button" class="btn-generate" data-action="suspended-clear-search">&#x2715; Reset Filter</button>
             </div>
         </div>
@@ -798,6 +810,8 @@
       if (action === 'login-refresh') LoginStatus.load();
       if (action === 'login-clear-search') LoginStatus.clearSearch();
       if (action === 'quiz-clear-search') LoginStatus.clearQuizSearch();
+      if (action === 'quiz-reset-subclass') LoginStatus.clearQuizSubclass();
+      if (action === 'login-reset-subclass') LoginStatus.clearLoginSubclass();
       if (action === 'login-clear-class') { var lcs = document.getElementById('filter-login-class'); if (lcs) lcs.value = ''; LoginStatus.render(); }
       if (action === 'login-select-visible') LoginStatus.selectVisibleOnly();
       if (action === 'login-select-paused') LoginStatus.selectPausedOnly();
@@ -813,6 +827,7 @@
       // Suspended actions
       if (action === 'suspended-refresh') LoginStatus.loadSuspended();
       if (action === 'suspended-clear-search') LoginStatus.clearSuspendedSearch();
+      if (action === 'suspended-reset-subclass') LoginStatus.clearSuspendedSubclass();
       if (action === 'suspended-unsuspend') LoginStatus.bulkUnsuspend();
       if (action === 'suspended-clear-selection') LoginStatus.clearSuspendedSelection();
       
@@ -854,9 +869,9 @@
       var btn = e.target.closest('[data-action]');
       if (!btn) return;
       var action = btn.getAttribute('data-action');
-      if (action === 'go-login-quiz')      { window.scrollTo(0,0); Dashboard.showPage('page-login-quiz'); }
-      if (action === 'go-login-active')    { window.scrollTo(0,0); Dashboard.showPage('page-login-active'); }
-      if (action === 'go-login-suspended') { window.scrollTo(0,0); Dashboard.showPage('page-login-suspended'); }
+      if (action === 'go-login-quiz')      { window.scrollTo(0,0); try { localStorage.setItem('dosman_login_subpage', 'quiz'); }      catch(_){} Dashboard.showPage('page-login-quiz'); }
+      if (action === 'go-login-active')    { window.scrollTo(0,0); try { localStorage.setItem('dosman_login_subpage', 'active'); }    catch(_){} Dashboard.showPage('page-login-active'); }
+      if (action === 'go-login-suspended') { window.scrollTo(0,0); try { localStorage.setItem('dosman_login_subpage', 'suspended'); } catch(_){} Dashboard.showPage('page-login-suspended'); }
       if (action === 'login-subpage-back') {
         window.scrollTo(0,0);
         // Hanya tampilkan page-courses (login tab sudah aktif) — jangan panggil

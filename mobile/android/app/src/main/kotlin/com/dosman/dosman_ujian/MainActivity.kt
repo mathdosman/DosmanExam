@@ -13,6 +13,7 @@ import android.media.ToneGenerator
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.net.Uri
 import android.provider.Settings
 import android.view.Display
 import android.view.WindowManager
@@ -32,9 +33,14 @@ class MainActivity : FlutterActivity() {
     private var kioskActive           = false   // kiosk sedang berjalan
     private var backLocked            = false   // Back button dikunci
     private var pinLoopOn             = false   // loop 1-detik berjalan
-    private var pinAttempts           = 0       // jumlah percobaan re-pin dalam siklus ini
-    private val maxPinAttempts        = 60      // 60x → tutup app
     private var wasPinnedSuccessfully = false   // true setelah lock task pertama kali aktif
+
+    // Debounce startLockTask(): cegah pesan "App pinned" muncul berkali-kali saat startup.
+    private var lastStartLockTaskMs     = 0L
+    private val startLockTaskCooldownMs = 5_000L
+
+    // Runnable bernama agar bisa dibatalkan di stopKiosk() jika belum terpicu.
+    private val startPinLoopDelayed: Runnable = Runnable { startPinLoop() }
 
     // Filter DND sebelum ujian dimulai — dikembalikan saat exitLockTask
     private var previousDndFilter = NotificationManager.INTERRUPTION_FILTER_UNKNOWN
@@ -80,60 +86,52 @@ class MainActivity : FlutterActivity() {
         } catch (_: Exception) {}
     }
 
-    /** Minta Android menampilkan dialog "Pin this app?" — hanya saat app sudah di depan. */
-    private fun requestPin() {
-        if (!kioskActive) return
+    /**
+     * Panggil startLockTask() dengan debounce: pesan "App pinned" hanya tampil
+     * sekali per [startLockTaskCooldownMs] milidetik, berapapun kali fungsi ini dipanggil.
+     * Return true jika startLockTask() benar-benar dieksekusi, false jika masih cooldown.
+     */
+    private fun startLockTaskDebounced(): Boolean {
+        val now = System.currentTimeMillis()
+        if (now - lastStartLockTaskMs < startLockTaskCooldownMs) return false
+        lastStartLockTaskMs = now
         try { whitelistLockTask() } catch (_: Exception) {}
         try { startLockTask() }     catch (_: Exception) {}
+        return true
     }
 
-    /** Paksa app kembali ke depan (dari background/recent) lalu pin. */
-    private fun bringToFrontAndPin() {
+    /** Pin app saat pertama masuk kiosk. Debounced agar pesan "App pinned" hanya muncul sekali. */
+    private fun requestPin() {
         if (!kioskActive) return
-        try { whitelistLockTask() } catch (_: Exception) {}
-        try { startLockTask() }     catch (_: Exception) {}
-        try {
-            startActivity(Intent(this, MainActivity::class.java).apply {
-                addFlags(
-                    Intent.FLAG_ACTIVITY_REORDER_TO_FRONT or
-                    Intent.FLAG_ACTIVITY_SINGLE_TOP       or
-                    Intent.FLAG_ACTIVITY_NEW_TASK
-                )
-            })
-        } catch (_: Exception) {}
+        startLockTaskDebounced()
     }
 
     /**
-     * Loop 1 detik: jika pin tidak aktif → re-pin langsung.
-     * Setelah 60x gagal → tutup app.
-     * Audio alarm HANYA dibunyikan jika app sebelumnya sudah berhasil terpinned
-     * (wasPinnedSuccessfully = true) — bukan pada percobaan pin pertama.
+     * Loop 1 detik: pantau apakah lock task masih aktif.
+     * Jika lock task hilang setelah berhasil pinned → bunyikan alarm, beritahu Flutter,
+     * lalu tutup app. Tidak ada percobaan re-pin.
      */
     private val pinLoop: Runnable = object : Runnable {
         override fun run() {
             if (!kioskActive || !pinLoopOn) return
             if (!isLockTaskActive()) {
-                if (pinAttempts == 0 && wasPinnedSuccessfully) {
-                    // Lock task hilang SETELAH sebelumnya berhasil pinned —
-                    // siswa mencabut pin secara aktif. Bunyikan alarm dan beritahu Flutter.
+                if (wasPinnedSuccessfully) {
+                    // Siswa berhasil mencabut pin → bunyikan alarm dan tutup app.
                     forceMaxVolume()
+                    playUnpinAlert()
                     mainHandler.post {
                         flutterChannel?.invokeMethod("onLockTaskLost", null)
                     }
-                    playUnpinAlert()
-                }
-                pinAttempts++
-                if (pinAttempts > maxPinAttempts) {
                     stopKiosk()
-                    try { finishAndRemoveTask() } catch (_: Exception) { finish() }
+                    // Beri 500ms agar alarm sempat berbunyi sebelum app ditutup.
+                    mainHandler.postDelayed({
+                        try { finishAndRemoveTask() } catch (_: Exception) { finish() }
+                    }, 500L)
                     return
                 }
-                // App mungkin di background → paksa ke depan sekaligus pin
-                bringToFrontAndPin()
+                // Belum pernah berhasil pinned — masih dalam proses aktivasi awal, tunggu.
             } else {
-                // Lock task aktif — catat sebagai berhasil pinned pertama kali
                 if (!wasPinnedSuccessfully) wasPinnedSuccessfully = true
-                pinAttempts = 0
             }
             mainHandler.postDelayed(this, 1_000L)
         }
@@ -141,16 +139,15 @@ class MainActivity : FlutterActivity() {
 
     private fun startPinLoop() {
         mainHandler.removeCallbacks(pinLoop)
-        pinAttempts = 0
-        pinLoopOn   = true
+        pinLoopOn = true
         mainHandler.post(pinLoop)
     }
 
     private fun stopKiosk() {
         mainHandler.removeCallbacks(pinLoop)
+        mainHandler.removeCallbacks(startPinLoopDelayed)  // batalkan jika belum terpicu
         pinLoopOn             = false
         kioskActive           = false
-        pinAttempts           = 0
         wasPinnedSuccessfully = false
         try {
             val dm = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
@@ -182,8 +179,13 @@ class MainActivity : FlutterActivity() {
             // Tiga nada panjang berurutan (total ~2850 ms, 3x lebih panjang dari sebelumnya)
             val handler = Handler(Looper.getMainLooper())
             tg.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 750)
-            handler.postDelayed({ tg.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 750) }, 1050)
-            handler.postDelayed({ tg.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 750); tg.release() }, 2100)
+            handler.postDelayed({
+                try { tg.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 750) } catch (_: Exception) {}
+            }, 1050)
+            handler.postDelayed({
+                try { tg.startTone(ToneGenerator.TONE_CDMA_EMERGENCY_RINGBACK, 750) } catch (_: Exception) {}
+                try { tg.release() } catch (_: Exception) {}
+            }, 2100)
         } catch (_: Exception) {}
     }
 
@@ -194,21 +196,55 @@ class MainActivity : FlutterActivity() {
         return nm.isNotificationPolicyAccessGranted
     }
 
-    /** Aktifkan DND saat kiosk dimulai — simpan filter sebelumnya untuk di-restore. */
+    /** Aktifkan DND saat kiosk dimulai — simpan filter sebelumnya untuk di-restore.
+     *  Guard isDndGranted() dihapus: beberapa ROM (Vivo FuntouchOS) melaporkan false
+     *  meski user sudah memberi izin. Coba set filter langsung; tangkap SecurityException
+     *  jika benar-benar tidak ada izin. */
     private fun enableDnd() {
-        if (!isDndGranted()) return
         try {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             previousDndFilter = nm.currentInterruptionFilter
-            // INTERRUPTION_FILTER_NONE: blokir semua — telepon, SMS, notifikasi app.
-            // ToneGenerator(STREAM_ALARM) masih berbunyi karena akses langsung ke audio hardware.
             nm.setInterruptionFilter(NotificationManager.INTERRUPTION_FILTER_NONE)
         } catch (_: Exception) {}
     }
 
+    /**
+     * Buka halaman izin DND dengan 3 fallback intent.
+     * Beberapa HP (Samsung, Xiaomi MIUI, OPPO ColorOS) memblokir intent pertama
+     * sehingga perlu dicoba alternatifnya.
+     *
+     * Urutan:
+     * 1. ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS — halaman khusus izin DND (standar Android)
+     * 2. ACTION_APP_NOTIFICATION_SETTINGS          — pengaturan notifikasi per-app (Samsung/MIUI fallback)
+     * 3. ACTION_APPLICATION_DETAILS_SETTINGS       — detail aplikasi (last resort)
+     */
+    private fun openDndSettingsWithFallback(): Boolean {
+        val flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+        val candidates = listOf(
+            Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+                .apply { addFlags(flags) },
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                .apply {
+                    addFlags(flags)
+                    putExtra(Settings.EXTRA_APP_PACKAGE, packageName)
+                },
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                .apply {
+                    addFlags(flags)
+                    data = Uri.fromParts("package", packageName, null)
+                },
+        )
+        for (intent in candidates) {
+            try {
+                startActivity(intent)
+                return true
+            } catch (_: Exception) { /* coba berikutnya */ }
+        }
+        return false
+    }
+
     /** Kembalikan DND ke kondisi sebelum ujian saat kiosk dimatikan. */
     private fun disableDnd() {
-        if (!isDndGranted()) return
         try {
             val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             val restore = if (
@@ -242,19 +278,14 @@ class MainActivity : FlutterActivity() {
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
 
-    /**
-     * Setiap kali app kembali ke depan: jika kiosk aktif tapi pin lepas,
-     * langsung pin ulang tanpa pengecekan kondisi lain.
-     */
+    /** Setiap kali app kembali ke depan: sembunyikan system bar, paksa volume alarm. */
     override fun onResume() {
         super.onResume()
         if (!kioskActive) return
         try { hideSystemBars() } catch (_: Exception) {}
-        // Volume hanya dipaksa max setelah app sudah berhasil pinned sebelumnya,
-        // sehingga saat siswa mencabut pin dan kembali ke app, alarm berbunyi keras.
         if (wasPinnedSuccessfully) forceMaxVolume()
-        // App sudah di depan — cukup startLockTask(), jangan startActivity (loop!)
-        if (!isLockTaskActive()) requestPin()
+        // Tidak ada requestPin() di sini — pin hanya sekali saat enterLockTask.
+        // Deteksi unpin dan penutupan app ditangani oleh pinLoop.
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -284,14 +315,14 @@ class MainActivity : FlutterActivity() {
     /**
      * Deteksi split-screen / multi-window saat kiosk aktif.
      * Android 7.0+ (API 24) memungkinkan siswa membuka dua app bersamaan.
-     * Ketika terdeteksi: coba re-pin + kirim event ke Flutter untuk trigger blokir.
+     * Ketika terdeteksi: coba re-pin (debounced) + kirim event ke Flutter untuk trigger blokir.
      */
     @Suppress("OVERRIDE_DEPRECATION")
     override fun onMultiWindowModeChanged(isInMultiWindowMode: Boolean) {
         super.onMultiWindowModeChanged(isInMultiWindowMode)
         if (isInMultiWindowMode && kioskActive) {
-            // Coba paksa full-screen kembali (berhasil di beberapa device)
-            try { startLockTask() } catch (_: Exception) {}
+            // Coba paksa full-screen kembali (berhasil di beberapa device) — debounced
+            startLockTaskDebounced()
             // Beritahu Flutter untuk memicu alur pelanggaran
             mainHandler.post {
                 flutterChannel?.invokeMethod("onSplitScreenDetected", null)
@@ -343,12 +374,14 @@ class MainActivity : FlutterActivity() {
                     try {
                         hideSystemBars()
                         kioskActive = true
-                        // forceMaxVolume() tidak dipanggil di sini agar notifikasi "App pinned"
-                        // pertama kali muncul tanpa audio. Volume akan dipaksa max hanya
-                        // setelah app berhasil pinned dan siswa mencoba mencabutnya.
                         enableDnd()
-                        requestPin()
-                        if (!isDeviceOwner()) startPinLoop()
+                        requestPin()  // tampilkan "App pinned" sekali di sini
+                        if (!isDeviceOwner()) {
+                            // Tunda loop 3 detik agar startLockTask() pertama sempat
+                            // aktif sebelum loop mulai mengecek — mencegah re-pin langsung
+                            // yang menampilkan pesan "App pinned" lagi.
+                            mainHandler.postDelayed(startPinLoopDelayed, 3_000L)
+                        }
                         // Mulai pantau display baru (screen cast / mirroring)
                         val dm = getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
                         dm.registerDisplayListener(displayListener, mainHandler)
@@ -513,15 +546,8 @@ class MainActivity : FlutterActivity() {
                     }
                 }
 
-                /** Minta dialog pin / lock task lagi (saat kiosk aktif). */
-                "requestScreenPin" -> {
-                    if (!kioskActive) {
-                        result.success(false)
-                    } else {
-                        try { bringToFrontAndPin() } catch (_: Exception) {}
-                        result.success(true)
-                    }
-                }
+                /** Tidak dipakai lagi — re-pin dihapus, app langsung tutup jika unpin. */
+                "requestScreenPin" -> result.success(false)
 
                 "checkVpn" -> {
                     // Cek apakah ada koneksi VPN aktif via NetworkCapabilities.
@@ -550,17 +576,7 @@ class MainActivity : FlutterActivity() {
 
                 "isDndPermissionGranted" -> result.success(isDndGranted())
 
-                "openDndSettings" -> {
-                    try {
-                        startActivity(
-                            Intent(android.provider.Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
-                                .apply { addFlags(Intent.FLAG_ACTIVITY_NEW_TASK) }
-                        )
-                        result.success(true)
-                    } catch (_: Exception) {
-                        result.success(false)
-                    }
-                }
+                "openDndSettings" -> result.success(openDndSettingsWithFallback())
 
                 "openWifiSettings" -> {
                     startActivity(Intent(Settings.ACTION_WIFI_SETTINGS))

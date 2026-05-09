@@ -177,24 +177,27 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
 
   /// Dipanggil KioskController saat native mendeteksi pelanggaran (split-screen, unpin, dll.).
   void _onNativeViolation(String reason) {
-    if (reason == 'lock_task_lost') {
-      // Siswa berhasil mencabut pin aplikasi.
-      // Hanya catat violation spesifik — suspend logic ditangani oleh lifecycle paused
-      // yang akan menyusul ketika app benar-benar ke background.
-      _logViolation('unpin_attempt', data: {'phase': _webPhase});
-      return;
-    }
-    // Pelanggaran lain (split-screen, overlay, screencast) — bypass grace period kiosk.
-    _kioskActivatingAt = null;
-    _onAppBackground();
+    // Semua native violation hanya dicatat (log) — TIDAK memulai timer suspend.
+    //
+    // Alasan: native violation (split-screen, overlay, screencast) terjadi saat
+    // siswa MASIH di dalam aplikasi. Memanggil _onAppBackground() di sini akan
+    // memulai timer 45 detik yang tidak pernah dibatalkan (karena _onAppResumed()
+    // hanya dipanggil saat lifecycle benar-benar berubah ke paused→resumed).
+    // Akibatnya: siswa tersuspend padahal masih mengerjakan kuis.
+    //
+    // Suspend tetap terjadi secara otomatis jika siswa benar-benar meninggalkan
+    // aplikasi (lifecycle → paused) setelah melakukan pelanggaran ini.
+    _logViolation(reason, data: {'phase': _webPhase});
   }
 
   // ─── App Lifecycle: deteksi minimize / background ────────────────────────
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive) {
+    // Hanya paused (app benar-benar di-background) yang memicu pengecekan.
+    // inactive = keyboard muncul / dialog sistem / transisi — bukan pelanggaran siswa,
+    // sehingga tidak boleh memulai timer suspend.
+    if (state == AppLifecycleState.paused) {
       _onAppBackground();
     } else if (state == AppLifecycleState.resumed) {
       _onAppResumed();
@@ -219,11 +222,12 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
     _backgroundedDuringActiveExam = true;
     _backgroundedAt = DateTime.now();
     _serverBlockSent = false;
+    _heartbeatTimer?.cancel();
+
     _logViolation('app_background', data: {
       'phase': _webPhase,
       'time':  DateTime.now().millisecondsSinceEpoch ~/ 1000,
     });
-    _heartbeatTimer?.cancel();
 
     // Jika siswa tidak kembali dalam 45 detik, suspend akun langsung.
     // Retry 3x dengan jeda 5 detik; jika semua gagal (offline),
@@ -289,14 +293,14 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
       }
       await _checkSessionStatus();
       if (!mounted) return;
-      if (_examState == ExamState.active) _startHeartbeat();
+      if (_examState == ExamState.active || _examState == ExamState.paused) _startHeartbeat();
       return;
     }
 
     if (_examState == ExamState.active || _examState == ExamState.paused) {
       await _checkSessionStatus();
       if (!mounted) return;
-      if (_examState == ExamState.active) _startHeartbeat();
+      if (_examState == ExamState.active || _examState == ExamState.paused) _startHeartbeat();
     }
   }
 
@@ -317,6 +321,10 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
     if (defaultTargetPlatform == TargetPlatform.android) {
       if (_androidExamKioskNative) return;
 
+      // Tandai waktu masuk kiosk — memberi grace period 30 detik di _onAppBackground()
+      // agar event sistem saat inisialisasi WebView (keyboard, dialog) tidak memicu suspend.
+      _kioskActivatingAt ??= DateTime.now();
+
       // Jika sudah disematkan (mis. KioskController.lock() saat login), hanya
       // perbarui flag — jangan panggil enterLockTask lagi supaya notifikasi
       // "App pinned" tidak muncul dua kali di awal ujian.
@@ -335,14 +343,14 @@ class _ExamScreenState extends State<ExamScreen> with WidgetsBindingObserver {
         return;
       }
 
-      // Catat waktu mulai pinning agar _onAppBackground() bisa memberi grace period.
+      // Timpa waktu pinning agar 30 detik dihitung sejak enterLockTask dipanggil.
       _kioskActivatingAt = DateTime.now();
 
       bool lockTaskRejected = false;
       try {
         final ok = await _lockdownChannel.invokeMethod<bool>('enterLockTask');
-        _androidLockTaskActive = ok == true;
-        _androidExamKioskNative = ok == true;
+        _androidLockTaskActive  = ok == true;
+        _androidExamKioskNative = true;   // selalu true agar guard mencegah concurrent call
         _immersiveUiActive = true;
         if (_androidLockTaskActive) {
           debugPrint('[Kiosk] Lock Task aktif (screen pinning)');

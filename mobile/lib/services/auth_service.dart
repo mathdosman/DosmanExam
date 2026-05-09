@@ -110,13 +110,20 @@ class AuthService {
     String username,
     String password,
   ) async {
-    // 1. Ambil token
+    // 1. Ambil token — exception di sini berarti kredensial salah atau network error
     final token = await ApiService.loginGetToken(username, password);
 
-    // 2. Verifikasi token & ambil info user
-    final siteInfo = await ApiService.getSiteInfo(token: token);
-    final userId   = (siteInfo['userid']   as num?)?.toInt() ?? 0;
-    final fullname =  siteInfo['fullname'] as String? ?? username;
+    // 2. Ambil info user — jika timeout/network error, lanjut dengan data minimal.
+    //    Token sudah valid (langkah 1 sukses), siswa tetap bisa masuk.
+    int userId = 0;
+    String fullname = username;
+    try {
+      final siteInfo = await ApiService.getSiteInfo(token: token);
+      userId   = (siteInfo['userid']   as num?)?.toInt() ?? 0;
+      fullname =  siteInfo['fullname'] as String? ?? username;
+    } catch (_) {
+      // getSiteInfo gagal (jaringan lambat) — lanjut dengan data default
+    }
 
     // 3. Simpan ke secure storage
     await Future.wait([
@@ -145,6 +152,10 @@ class AuthService {
       _storage.delete(key: _keyToken),
       _storage.delete(key: _keyPassword),
       _storage.delete(key: _keyBlockedStatus),
+      _storage.delete(key: _keyUserId),
+      _storage.delete(key: _keyUsername),
+      _storage.delete(key: _keyFullname),
+      _storage.delete(key: _keySuspendedByAdmin),
     ]);
     ApiService.clearToken();
   }

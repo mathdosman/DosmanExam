@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/kiosk_controller.dart';
 
 class DndPermissionScreen extends StatefulWidget {
@@ -11,7 +12,10 @@ class DndPermissionScreen extends StatefulWidget {
 
 class _DndPermissionScreenState extends State<DndPermissionScreen>
     with WidgetsBindingObserver {
-  bool _opening = false;
+  bool _opening  = false;
+  // true setelah user setidaknya sekali mencoba buka Settings.
+  // Dipakai untuk memunculkan tombol bypass jika deteksi izin gagal (mis. Vivo FuntouchOS).
+  bool _attempted = false;
 
   @override
   void initState() {
@@ -29,8 +33,11 @@ class _DndPermissionScreenState extends State<DndPermissionScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.resumed && _attempted) {
       _checkAndProceed();
+      // Setelah kembali dari Settings, tampilkan tombol bypass
+      // agar HP yang API-nya broken (mis. Vivo) tetap bisa lanjut.
+      if (mounted) setState(() {});
     }
   }
 
@@ -43,9 +50,29 @@ class _DndPermissionScreenState extends State<DndPermissionScreen>
 
   Future<void> _requestPermission() async {
     setState(() => _opening = true);
-    await KioskController.instance.openDndSettings();
-    if (mounted) setState(() => _opening = false);
-    await _checkAndProceed();
+    final opened = await KioskController.instance.openDndSettings();
+    if (!mounted) return;
+    setState(() {
+      _opening  = false;
+      _attempted = true;
+    });
+    if (!opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Tidak bisa membuka Pengaturan secara otomatis.\n'
+            'Buka Pengaturan HP → Notifikasi → Akses DND → aktifkan Dosman Exam.',
+          ),
+          duration: Duration(seconds: 6),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+    // Lifecycle observer memanggil _checkAndProceed() saat user kembali.
+  }
+
+  void _forceproceed() {
+    if (mounted) Navigator.of(context).pushReplacementNamed(widget.nextRoute);
   }
 
   @override
@@ -54,6 +81,22 @@ class _DndPermissionScreenState extends State<DndPermissionScreen>
       canPop: false,
       child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
+        floatingActionButton: FloatingActionButton.extended(
+          onPressed: () => SystemNavigator.pop(),
+          backgroundColor: Colors.red.withValues(alpha: 0.15),
+          foregroundColor: Colors.red.withValues(alpha: 0.85),
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+            side: BorderSide(color: Colors.red.withValues(alpha: 0.3)),
+          ),
+          icon: const Icon(Icons.exit_to_app_rounded, size: 16),
+          label: const Text(
+            'Keluar',
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
         body: SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -145,6 +188,30 @@ class _DndPermissionScreenState extends State<DndPermissionScreen>
                     ),
                   ),
                 ),
+                // Tombol bypass — muncul setelah user pernah coba buka Settings.
+                // Diperlukan untuk HP yang API-nya tidak melaporkan izin dengan benar
+                // (mis. Vivo FuntouchOS) sehingga _checkAndProceed() tidak pernah lanjut.
+                if (_attempted) ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 46,
+                    child: TextButton(
+                      onPressed: _forceproceed,
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white54,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          side: const BorderSide(color: Colors.white24),
+                        ),
+                      ),
+                      child: const Text(
+                        'Sudah Diizinkan, Lanjutkan',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

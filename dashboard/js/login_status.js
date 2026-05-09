@@ -123,6 +123,11 @@ var LoginStatus = {
     return sel ? (sel.value || '') : '';
   },
 
+  getLoginSubClassFilter: function () {
+    var sel = document.getElementById('filter-login-subclass');
+    return sel ? (sel.value || '') : '';
+  },
+
   getQuizSearchText: function () {
     var el = document.getElementById('quiz-status-search');
     return el ? (el.value || '').trim().toLowerCase() : '';
@@ -133,23 +138,54 @@ var LoginStatus = {
     return sel ? (sel.value || '') : '';
   },
 
+  getQuizSubClassFilter: function () {
+    var sel = document.getElementById('filter-quiz-subclass');
+    return sel ? (sel.value || '') : '';
+  },
+
   clearQuizSearch: function () {
     var el = document.getElementById('quiz-status-search');
     if (el) el.value = '';
     var sel = document.getElementById('filter-quiz-class');
     if (sel) sel.value = '';
+    var subSel = document.getElementById('filter-quiz-subclass');
+    if (subSel) { subSel.style.display = 'none'; subSel.value = ''; }
+    var resetBtn = document.getElementById('quiz-reset-subclass');
+    if (resetBtn) resetBtn.style.display = 'none';
     this.render();
   },
 
-  _applyFilter: function (users, q, kelas) {
+  clearQuizSubclass: function () {
+    var subSel = document.getElementById('filter-quiz-subclass');
+    if (subSel) subSel.value = '';
+    var resetBtn = document.getElementById('quiz-reset-subclass');
+    if (resetBtn) resetBtn.style.display = 'none';
+    this.render();
+  },
+
+  clearLoginSubclass: function () {
+    var subSel = document.getElementById('filter-login-subclass');
+    if (subSel) subSel.value = '';
+    var resetBtn = document.getElementById('login-reset-subclass');
+    if (resetBtn) resetBtn.style.display = 'none';
+    this.render();
+  },
+
+  _applyFilter: function (users, q, kelas, subkelas) {
     return users.filter(function (u) {
-      if (kelas && (u.department || '').trim() !== kelas) return false;
+      var fullname = ((u.firstname || '') + ' ' + (u.lastname || '')).trim();
+      if (kelas === 'GRADE_X') {
+        // Match names with class X (e.g. "X 1".."X 10") but not XI
+        if (!/\bX\s+\d/i.test(fullname) || /\bXI\s/i.test(fullname)) return false;
+      } else if (kelas === 'GRADE_XI') {
+        if (!/\bXI\s/i.test(fullname)) return false;
+      } else if (kelas) {
+        if ((u.department || '').trim() !== kelas) return false;
+      }
+      if (subkelas && fullname.toLowerCase().indexOf(subkelas.toLowerCase()) < 0) return false;
       if (!q) return true;
       var tokens = q.split(/\s+/).filter(Boolean);
-      var hay = (
-        (u.firstname || '') + ' ' + (u.lastname || '') + ' ' +
-        (u.username || '') + ' ' + (u.department || '')
-      ).toLowerCase();
+      var hay = (fullname + ' ' + (u.username || '') + ' ' + (u.department || '')).toLowerCase();
       for (var i = 0; i < tokens.length; i++) {
         if (hay.indexOf(tokens[i]) < 0) return false;
       }
@@ -159,6 +195,25 @@ var LoginStatus = {
 
   getFilteredUsers: function () {
     return this._applyFilter(this.users, this.getSearchText(), this.getLoginClassFilter());
+  },
+
+  _subclassOptions: {
+    GRADE_X:  ['X 1','X 2','X 3','X 4','X 5','X 6','X 7','X 8','X 9','X 10'],
+    GRADE_XI: ['XI A','XI B1','XI B2','XI B3','XI B4','XI B5','XI B6','XI B7','XI C1','XI C2','XI D1','XI D2'],
+  },
+
+  _updateSubclassDropdown: function (subSelId, grade) {
+    var sel = document.getElementById(subSelId);
+    if (!sel) return;
+    var opts = this._subclassOptions[grade];
+    if (!opts) { sel.style.display = 'none'; sel.value = ''; return; }
+    sel.innerHTML = '<option value="">Semua Sub-Kelas</option>';
+    opts.forEach(function (v) {
+      var o = document.createElement('option');
+      o.value = v; o.textContent = v;
+      sel.appendChild(o);
+    });
+    sel.style.display = '';
   },
 
   rebuildLoginClassOptions: function () {
@@ -172,14 +227,17 @@ var LoginStatus = {
       var sel = document.getElementById(selId);
       if (!sel) return;
       var preserved = sel.value;
-      sel.innerHTML = '<option value="">🏷️ Semua Kelas</option>';
+      sel.innerHTML =
+        '<option value="">🏷️ Semua Kelas</option>' +
+        '<option value="GRADE_X">📚 Kelas X</option>' +
+        '<option value="GRADE_XI">📚 Kelas XI</option>';
       keys.forEach(function (k) {
         var o = document.createElement('option');
         o.value = k;
         o.textContent = k;
         sel.appendChild(o);
       });
-      if (preserved && set[preserved]) sel.value = preserved;
+      if (preserved === 'GRADE_X' || preserved === 'GRADE_XI' || set[preserved]) sel.value = preserved;
     });
   },
 
@@ -208,11 +266,11 @@ var LoginStatus = {
     }
 
     // Quiz table: filter only quiz users by quiz-specific search
-    var onQuiz = self._applyFilter(allOnQuiz, self.getQuizSearchText(), self.getQuizClassFilter());
+    var onQuiz = self._applyFilter(allOnQuiz, self.getQuizSearchText(), self.getQuizClassFilter(), self.getQuizSubClassFilter());
 
     // Login table: filter non-quiz users by login-specific search
     var allLoginRaw = self.users.filter(function (u) { return !(u.current_quizid > 0 && (u.lock_status === 1 || u.client_type === 'ios')); });
-    var loginFiltered = self._applyFilter(allLoginRaw, self.getSearchText(), self.getLoginClassFilter());
+    var loginFiltered = self._applyFilter(allLoginRaw, self.getSearchText(), self.getLoginClassFilter(), self.getLoginSubClassFilter());
     var blocked    = loginFiltered.filter(function (u) { return u.lock_status === 2; });
     var paused     = loginFiltered.filter(function (u) { return u.lock_status === 3; });
     var idleActive = loginFiltered.filter(function (u) { return u.lock_status === 1 && u.current_quizid === 0; });
@@ -448,6 +506,10 @@ var LoginStatus = {
     if (el) el.value = '';
     var sel = document.getElementById('filter-login-class');
     if (sel) sel.value = '';
+    var subSel = document.getElementById('filter-login-subclass');
+    if (subSel) { subSel.style.display = 'none'; subSel.value = ''; }
+    var resetBtn = document.getElementById('login-reset-subclass');
+    if (resetBtn) resetBtn.style.display = 'none';
     this.searchTouched = false;
     this.searchInputArmed = false;
     this.render();
@@ -822,7 +884,6 @@ var LoginStatus = {
       })
       .catch(function (e) {
         tbody.innerHTML = '<tr><td colspan="6" style="padding:14px;text-align:center;color:#dc2626">&#x274C; ' + e.message + '</td></tr>';
-        if (counter) counter.textContent = '—';
       });
   },
 
@@ -836,22 +897,18 @@ var LoginStatus = {
     return sel ? (sel.value || '') : '';
   },
 
+  getSuspendedSubClassFilter: function () {
+    var sel = document.getElementById('filter-suspended-subclass');
+    return sel ? (sel.value || '') : '';
+  },
+
   getFilteredSuspended: function () {
-    var q = this.getSuspendedSearchText();
-    var kelas = this.getSuspendedClassFilter();
-    return this.suspendedUsers.filter(function (s) {
-      if (kelas && (s.department || '').trim() !== kelas) return false;
-      if (!q) return true;
-      var tokens = q.split(/\s+/).filter(Boolean);
-      var hay = (
-        (s.firstname || '') + ' ' + (s.lastname || '') + ' ' +
-        (s.username || '') + ' ' + (s.department || '')
-      ).toLowerCase();
-      for (var i = 0; i < tokens.length; i++) {
-        if (hay.indexOf(tokens[i]) < 0) return false;
-      }
-      return true;
-    });
+    return this._applyFilter(
+      this.suspendedUsers,
+      this.getSuspendedSearchText(),
+      this.getSuspendedClassFilter(),
+      this.getSuspendedSubClassFilter()
+    );
   },
 
   rebuildSuspendedClassOptions: function () {
@@ -864,14 +921,17 @@ var LoginStatus = {
       if (d) set[d] = true;
     });
     var keys = Object.keys(set).sort(function (a, b) { return a.localeCompare(b, 'id'); });
-    sel.innerHTML = '<option value="">🏷️ Semua Kelas</option>';
+    sel.innerHTML =
+      '<option value="">🏷️ Semua Kelas</option>' +
+      '<option value="GRADE_X">📚 Kelas X</option>' +
+      '<option value="GRADE_XI">📚 Kelas XI</option>';
     keys.forEach(function (k) {
       var o = document.createElement('option');
       o.value = k;
       o.textContent = k;
       sel.appendChild(o);
     });
-    if (preserved && set[preserved]) sel.value = preserved;
+    if (preserved === 'GRADE_X' || preserved === 'GRADE_XI' || set[preserved]) sel.value = preserved;
   },
 
   renderSuspended: function (students) {
@@ -971,11 +1031,23 @@ var LoginStatus = {
     if (el) el.style.display = on ? 'inline' : 'none';
   },
 
+  clearSuspendedSubclass: function () {
+    var subSel = document.getElementById('filter-suspended-subclass');
+    if (subSel) subSel.value = '';
+    var resetBtn = document.getElementById('suspended-reset-subclass');
+    if (resetBtn) resetBtn.style.display = 'none';
+    this.renderSuspended(this.suspendedUsers);
+  },
+
   clearSuspendedSearch: function () {
     var el = document.getElementById('suspended-search');
     if (el) el.value = '';
     var sel = document.getElementById('filter-suspended-class');
     if (sel) sel.value = '';
+    var subSel = document.getElementById('filter-suspended-subclass');
+    if (subSel) { subSel.style.display = 'none'; subSel.value = ''; }
+    var resetBtn = document.getElementById('suspended-reset-subclass');
+    if (resetBtn) resetBtn.style.display = 'none';
     this.renderSuspended(this.suspendedUsers);
   },
 
@@ -1016,10 +1088,6 @@ var LoginStatus = {
         self._setSuspendedBulkLoading(false);
       });
     });
-  },
-
-  _escHtml: function (str) {
-    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   },
 
   loadDeviceBlocked: function () { /* Tier 1 dihapus — tidak ada lagi */ },
@@ -1153,6 +1221,22 @@ document.addEventListener('DOMContentLoaded', function () {
   var loginClassFilter = document.getElementById('filter-login-class');
   if (loginClassFilter) {
     loginClassFilter.addEventListener('change', function () {
+      var grade = this.value;
+      var subSel = document.getElementById('filter-login-subclass');
+      if (grade === 'GRADE_X' || grade === 'GRADE_XI') {
+        LoginStatus._updateSubclassDropdown('filter-login-subclass', grade);
+        if (subSel) subSel.value = '';
+      } else {
+        if (subSel) { subSel.style.display = 'none'; subSel.value = ''; }
+      }
+      LoginStatus.render();
+    });
+  }
+  var loginSubclassFilter = document.getElementById('filter-login-subclass');
+  if (loginSubclassFilter) {
+    loginSubclassFilter.addEventListener('change', function () {
+      var resetBtn = document.getElementById('login-reset-subclass');
+      if (resetBtn) resetBtn.style.display = this.value ? '' : 'none';
       LoginStatus.render();
     });
   }
@@ -1166,7 +1250,25 @@ document.addEventListener('DOMContentLoaded', function () {
   }
   var quizClassFilter = document.getElementById('filter-quiz-class');
   if (quizClassFilter) {
-    quizClassFilter.addEventListener('change', function () { LoginStatus.render(); });
+    quizClassFilter.addEventListener('change', function () {
+      var grade = this.value;
+      var subSel = document.getElementById('filter-quiz-subclass');
+      if (grade === 'GRADE_X' || grade === 'GRADE_XI') {
+        LoginStatus._updateSubclassDropdown('filter-quiz-subclass', grade);
+        if (subSel) subSel.value = '';
+      } else {
+        if (subSel) { subSel.style.display = 'none'; subSel.value = ''; }
+      }
+      LoginStatus.render();
+    });
+  }
+  var quizSubclassFilter = document.getElementById('filter-quiz-subclass');
+  if (quizSubclassFilter) {
+    quizSubclassFilter.addEventListener('change', function () {
+      var resetBtn = document.getElementById('quiz-reset-subclass');
+      if (resetBtn) resetBtn.style.display = this.value ? '' : 'none';
+      LoginStatus.render();
+    });
   }
 
   var suspendedSearch = document.getElementById('suspended-search');
@@ -1179,6 +1281,22 @@ document.addEventListener('DOMContentLoaded', function () {
   var suspendedClassFilter = document.getElementById('filter-suspended-class');
   if (suspendedClassFilter) {
     suspendedClassFilter.addEventListener('change', function () {
+      var grade = this.value;
+      var subSel = document.getElementById('filter-suspended-subclass');
+      if (grade === 'GRADE_X' || grade === 'GRADE_XI') {
+        LoginStatus._updateSubclassDropdown('filter-suspended-subclass', grade);
+        if (subSel) subSel.value = '';
+      } else {
+        if (subSel) { subSel.style.display = 'none'; subSel.value = ''; }
+      }
+      LoginStatus.renderSuspended(LoginStatus.suspendedUsers || []);
+    });
+  }
+  var suspendedSubclassFilter = document.getElementById('filter-suspended-subclass');
+  if (suspendedSubclassFilter) {
+    suspendedSubclassFilter.addEventListener('change', function () {
+      var resetBtn = document.getElementById('suspended-reset-subclass');
+      if (resetBtn) resetBtn.style.display = this.value ? '' : 'none';
       LoginStatus.renderSuspended(LoginStatus.suspendedUsers || []);
     });
   }

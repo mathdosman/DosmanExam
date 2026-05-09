@@ -1,6 +1,6 @@
 // ===========================
-// Banner: kiosk aktif tetapi aplikasi belum dalam mode screen pin (lock task).
-// Meminta siswa menyematkan lagi + tombol untuk memicu dialog dari native.
+// Overlay penuh: kiosk aktif tetapi aplikasi belum dalam mode screen pin (lock task).
+// Memblokir seluruh layar agar siswa tidak bisa mengerjakan kuis sebelum disematkan.
 // Juga menampilkan overlay bawah sementara untuk menutup toast Android
 // "To unpin this app..." yang muncul saat screen pinning diaktifkan.
 // ===========================
@@ -8,6 +8,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../services/kiosk_controller.dart';
 
@@ -95,6 +96,36 @@ class _PinReminderLayerState extends State<PinReminderLayer>
     if (ok != _pinned) setState(() => _pinned = ok);
   }
 
+  Widget _stepRow(String num, String text) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(11),
+          ),
+          alignment: Alignment.center,
+          child: Text(num,
+              style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700)),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(text,
+              style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.85),
+                  fontSize: 13,
+                  height: 1.4)),
+        ),
+      ],
+    );
+  }
+
   Future<void> _onTapPinAgain() async {
     _triggerBottomMask(); // tutup toast re-pin
     await _kiosk.requestScreenPinAgain();
@@ -113,55 +144,91 @@ class _PinReminderLayerState extends State<PinReminderLayer>
       children: [
         widget.child,
 
-        // Banner atas: minta siswa sematkan ulang jika pin lepas
+        // Overlay penuh: blokir seluruh layar jika kiosk aktif tapi belum disematkan
         if (showBanner)
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Material(
-                color: const Color(0xFF1E40AF),
-                elevation: 8,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+          Positioned.fill(
+            child: Material(
+              color: const Color(0xFF1E3A8A),
+              child: Stack(
+                children: [
+                  SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(28, 0, 28, 80),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.push_pin, color: Colors.white, size: 22),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Aplikasi harus disematkan (App pinned). '
-                              'Ikuti petunjuk di layar Android lalu ketuk Sematkan / Pin. '
-                              'Jika dialog tidak muncul, ketuk tombol di bawah.',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.98),
-                                fontSize: 13,
-                                height: 1.45,
-                                fontWeight: FontWeight.w600,
-                              ),
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: const Icon(Icons.push_pin_rounded,
+                            color: Colors.white, size: 40),
+                      ),
+                      const SizedBox(height: 24),
+                      const Text(
+                        'Aplikasi Belum Disematkan',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Aplikasi harus dalam mode App Pinned agar ujian dapat berjalan dengan aman. '
+                        'Konten kuis tidak bisa diakses sebelum aplikasi disematkan.',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 13,
+                          height: 1.6,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.15)),
+                        ),
+                        child: Column(
+                          children: [
+                            _stepRow('1',
+                                'Ketuk "Sematkan Ulang" di bawah'),
+                            const SizedBox(height: 10),
+                            _stepRow('2',
+                                'Ikuti petunjuk pin yang muncul di layar Android'),
+                            const SizedBox(height: 10),
+                            _stepRow('3',
+                                'Jika gagal, tutup aplikasi lalu buka kembali'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: _onTapPinAgain,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: const Color(0xFF1E3A8A),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 10),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: FilledButton.tonal(
-                          onPressed: _onTapPinAgain,
-                          style: FilledButton.styleFrom(
-                            foregroundColor: const Color(0xFF1E3A8A),
-                            backgroundColor: Colors.white,
-                          ),
-                          child: const Text(
-                            'Minta sematkan lagi',
-                            style: TextStyle(fontWeight: FontWeight.w700),
+                          icon: const Icon(Icons.push_pin_rounded, size: 20),
+                          label: const Text(
+                            'Sematkan Ulang',
+                            style: TextStyle(
+                                fontSize: 15, fontWeight: FontWeight.w700),
                           ),
                         ),
                       ),
@@ -169,6 +236,31 @@ class _PinReminderLayerState extends State<PinReminderLayer>
                   ),
                 ),
               ),
+              // Tombol Tutup Aplikasi — pojok kiri bawah (floating)
+              Positioned(
+                bottom: bottomPadding + 16,
+                left: 16,
+                child: FloatingActionButton.extended(
+                  heroTag: 'pin_exit_btn',
+                  onPressed: () => SystemNavigator.pop(),
+                  backgroundColor: Colors.red.withValues(alpha: 0.15),
+                  foregroundColor: Colors.red.withValues(alpha: 0.85),
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    side: BorderSide(
+                        color: Colors.red.withValues(alpha: 0.3)),
+                  ),
+                  icon: const Icon(Icons.exit_to_app_rounded, size: 16),
+                  label: const Text(
+                    'Keluar',
+                    style:
+                        TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
             ),
           ),
 

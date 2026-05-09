@@ -108,29 +108,37 @@ class _LoginScreenState extends State<LoginScreen>
       await AuthService.login(_userCtrl.text.trim(), _passCtrl.text);
       if (!mounted) return;
 
-      // Device Binding: daftarkan perangkat ke server
-      final deviceId = await DeviceService.getDeviceId();
-      final token = await AuthService.getToken() ?? '';
-      if (token.isNotEmpty) {
-        final model = await DeviceService.getDeviceModel();
-        final regResult = await ExamService.registerDevice(
-          deviceId: deviceId,
-          token: token,
-          platform: DeviceService.platform,
-          model: model,
-        );
-        if (regResult.deviceBlocked && mounted) {
-          await AuthService.logout();
-          KioskController.instance.unlock();
-          if (!mounted) return;
-          Navigator.of(context).pushAndRemoveUntil(
-            MaterialPageRoute(
-              builder: (_) => DeviceBlockedScreen(reason: regResult.reason, blockedAt: regResult.blockedAt),
-            ),
-            (route) => false,
+      // Device Binding: daftarkan perangkat ke server.
+      // Dibungkus try-catch tersendiri — kegagalan registrasi (timeout / server error)
+      // TIDAK boleh memblokir login karena token Moodle sudah berhasil didapat.
+      // Hanya redirect ke blocked screen jika server secara eksplisit mengembalikan deviceBlocked=true.
+      try {
+        final deviceId = await DeviceService.getDeviceId();
+        final token = await AuthService.getToken() ?? '';
+        if (token.isNotEmpty) {
+          final model = await DeviceService.getDeviceModel();
+          final regResult = await ExamService.registerDevice(
+            deviceId: deviceId,
+            token: token,
+            platform: DeviceService.platform,
+            model: model,
           );
-          return;
+          if (regResult.deviceBlocked && mounted) {
+            await AuthService.logout();
+            KioskController.instance.unlock();
+            if (!mounted) return;
+            Navigator.of(context).pushAndRemoveUntil(
+              MaterialPageRoute(
+                builder: (_) => DeviceBlockedScreen(reason: regResult.reason, blockedAt: regResult.blockedAt),
+              ),
+              (route) => false,
+            );
+            return;
+          }
         }
+      } catch (_) {
+        // Gagal registrasi perangkat (jaringan lambat, server error) →
+        // abaikan dan lanjut login. Siswa tetap bisa masuk.
       }
 
       ExamService.pingAppLogin(); // daftarkan ke dashboard segera
@@ -248,8 +256,8 @@ class _LoginScreenState extends State<LoginScreen>
           children: [
             // Ring luar
             Container(
-              width: 108,
-              height: 108,
+              width: 92,
+              height: 92,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: const SweepGradient(
@@ -264,29 +272,29 @@ class _LoginScreenState extends State<LoginScreen>
                 boxShadow: [
                   BoxShadow(
                     color:      const Color(0xFFD4A017).withValues(alpha: 0.35),
-                    blurRadius: 20,
-                    spreadRadius: 2,
+                    blurRadius: 18,
+                    spreadRadius: 1,
                   ),
                 ],
               ),
             ),
             // Background putih logo
             Container(
-              width: 96,
-              height: 96,
+              width: 80,
+              height: 80,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
                 color: Colors.white,
               ),
               child: ClipOval(
                 child: Padding(
-                  padding: const EdgeInsets.all(4),
+                  padding: const EdgeInsets.all(10),
                   child: Image.asset(
                     'assets/logo_sekolah.png',
                     fit: BoxFit.contain,
                     errorBuilder: (_, __, ___) => const Icon(
                       Icons.school_rounded,
-                      size: 52,
+                      size: 40,
                       color: Color(0xFF1E3A5F),
                     ),
                   ),
@@ -694,15 +702,20 @@ class _LoginScreenState extends State<LoginScreen>
 
   Widget _buildUsernameField() {
     return TextFormField(
-      controller:      _userCtrl,
-      focusNode:       _userFocus,
-      keyboardType:    TextInputType.emailAddress,
-      textInputAction: TextInputAction.next,
-      autofillHints:   const [AutofillHints.username],
-      enabled:         !_isLoading,
-      style:           const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
-      decoration:      _inputDeco(hint: 'username atau email Moodle', icon: Icons.person_outline_rounded),
-      onFieldSubmitted: (_) => _passFocus.requestFocus(),
+      controller:           _userCtrl,
+      focusNode:            _userFocus,
+      keyboardType:         TextInputType.text,
+      textInputAction:      TextInputAction.next,
+      // emailAddress di-nonaktifkan: banyak keyboard Android auto-capitalize
+      // atau auto-correct username sehingga login gagal meski password benar.
+      autocorrect:          false,
+      enableSuggestions:    false,
+      textCapitalization:   TextCapitalization.none,
+      autofillHints:        const [AutofillHints.username],
+      enabled:              !_isLoading,
+      style:                const TextStyle(fontSize: 14, color: Color(0xFF0F172A)),
+      decoration:           _inputDeco(hint: 'username atau email Moodle', icon: Icons.person_outline_rounded),
+      onFieldSubmitted:     (_) => _passFocus.requestFocus(),
       validator: (v) => (v == null || v.trim().isEmpty) ? 'Username wajib diisi' : null,
     );
   }

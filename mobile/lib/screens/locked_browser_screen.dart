@@ -80,24 +80,29 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
     }
   }
 
-  /// Saat app dibuka: cek status blokir (flag lokal → langsung BlockedScreen;
+  /// Saat app dibuka: cek status blokir (flag lokal → cek server;
   /// tidak ada flag → cek server). WebView tidak tampil sampai selesai.
   Future<void> _checkBlockedOnStart() async {
     // ── Prioritas 0: Device Binding — cek sebelum cek akun ──────────────────
-    final deviceId = await DeviceService.getDeviceId();
-    final deviceResult = await ExamService.checkDevice(deviceId);
-    if (!mounted) return;
-    if (deviceResult.blocked) {
-      KioskController.instance.unlock();
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) => DeviceBlockedScreen(
-            reason: deviceResult.reason,
-            blockedAt: deviceResult.blockedAt,
+    try {
+      final deviceId = await DeviceService.getDeviceId();
+      final deviceResult = await ExamService.checkDevice(deviceId);
+      if (!mounted) return;
+      if (deviceResult.blocked) {
+        KioskController.instance.unlock();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => DeviceBlockedScreen(
+              reason: deviceResult.reason,
+              blockedAt: deviceResult.blockedAt,
+            ),
           ),
-        ),
-      );
-      return;
+        );
+        return;
+      }
+    } catch (_) {
+      if (!mounted) return;
+      // Network error saat cek device — lanjut tanpa memblokir berdasarkan asumsi
     }
 
     final locallyBlocked = await AuthService.getBlockedStatus();
@@ -105,47 +110,39 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
     if (!mounted) return;
 
     if (userId > 0) {
-      // ── Prioritas 1: flag lokal → sinkronisasi server, lalu BlockedScreen ──
-      // Flag lokal diset saat masuk ke LockedBrowserScreen; jika masih true
-      // berarti siswa force-close atau tidak keluar dengan benar.
-      // Sinkronisasi dulu ke server, lalu langsung ke BlockedScreen agar siswa
-      // tidak bisa bypass blokir dengan cara login ulang.
+      // ── Prioritas 1: flag lokal → bersihkan, lanjut ke cek server ──────────
+      // Flag true berarti siswa force-close saat di browser (bukan saat kuis).
+      // Token masih valid — cukup bersihkan flag, tidak perlu login ulang.
+      // Cek server tetap dijalankan untuk mendeteksi blokir admin.
       if (locallyBlocked) {
-        // Suspend akun — tidak ada Tier 1 device block lagi.
-        // Banner suspend muncul di login screen saat siswa coba login ulang.
-        try {
-          await ExamService.suspendStudent(userId: userId)
-              .timeout(const Duration(seconds: 6));
-        } catch (_) {}
-        if (!mounted) return;
         await AuthService.saveBlockedStatus(false);
-        await AuthService.logout();
         if (!mounted) return;
-        KioskController.instance.unlock();
-        Navigator.of(context).pushNamedAndRemoveUntil('/login', (route) => false);
-        return;
       }
 
       // ── Prioritas 2: cek server (zombie session / blokir admin) ──────────
-      final result = await ExamService.checkBlocked(userId: userId);
-      if (!mounted) return;
-      if (result.blocked) {
-        await AuthService.saveBlockedStatus(true);
+      try {
+        final result = await ExamService.checkBlocked(userId: userId);
         if (!mounted) return;
-        KioskController.instance.unlock();
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(
-            builder: (_) => BlockedScreen(userId: userId, reason: result.reason),
-          ),
-        );
-        return;
+        if (result.blocked) {
+          await AuthService.saveBlockedStatus(true);
+          if (!mounted) return;
+          KioskController.instance.unlock();
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => BlockedScreen(userId: userId, reason: result.reason),
+            ),
+          );
+          return;
+        }
+      } catch (_) {
+        if (!mounted) return;
+        // Network error saat cek blokir — lanjut tanpa memblokir berdasarkan asumsi
       }
     }
 
     // Tidak diblokir → tandai "sedang dalam sesi browser terkunci".
-    // Flag ini SENGAJA disimpan true sekarang; jika app di-force close, flag
-    // tetap true dan saat dibuka ulang siswa langsung ke BlockedScreen.
-    // Flag hanya di-clear saat siswa keluar dengan benar lewat _handleExit().
+    // Jika app di-force close sebelum _handleExit(), flag tetap true saat dibuka
+    // ulang. _checkBlockedOnStart() membersihkan flag lalu menjalankan cek server.
     //
     // Cek _blockSent: jika native violation mengirim blokir bersamaan dengan
     // _checkBlockedOnStart() (race condition), jangan set flag atau mulai ping.
@@ -572,9 +569,18 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
 
     // Layar menyala tapi app diminimize → siswa pindah ke app lain
     _screenWasOff = false;
+
+    // Dalam grace period 10 menit: jangan mulai timer suspend.
+    if (KioskController.instance.isInGracePeriod) return;
+
     _blockTimer = Timer(
       const Duration(seconds: AppConfig.backgroundBlockTimeout),
       () async {
+        // Cek ulang grace period saat timer fired — bisa saja masih dalam 10 menit.
+        if (KioskController.instance.isInGracePeriod) {
+          _blockSent = false;
+          return;
+        }
         _blockSent = true;
         await _doBlockStudent();
       },
@@ -639,6 +645,11 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
     if (elapsed <= 0) return;
 
     if (_blockSent || elapsed >= AppConfig.backgroundBlockTimeout) {
+      // Dalam grace period 10 menit: log saja, jangan blokir.
+      if (KioskController.instance.isInGracePeriod) {
+        _blockSent = false;
+        return;
+      }
       // Timer sudah tembak atau durasi melewati batas — blokir
       if (!_blockSent) {
         _blockSent = true;
@@ -665,18 +676,16 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
   Future<void> _doBlockStudent({String violationReason = 'exit_during_browser'}) async {
     final userId = await _getEffectiveUserId();
 
-    // Suspend akun langsung — tidak ada Tier 1 device block.
+    // Browser mode: cukup logout, TIDAK suspend akun.
+    // Suspend hanya dilakukan oleh ExamScreen saat siswa keluar di tengah kuis aktif.
     _pingTimer?.cancel();
 
     if (userId > 0) {
       try {
         ExamService.sendBrowserHeartbeat(userId: userId, active: false).ignore();
-        await ExamService.suspendStudent(userId: userId)
-            .timeout(const Duration(seconds: 6));
       } catch (_) {}
     }
 
-    // Hapus flag lokal SETELAH percobaan suspend.
     await AuthService.saveBlockedStatus(false);
     await AuthService.logout();
 
@@ -990,15 +999,6 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
                   label: 'WiFi',
                   onTap: _openWifiSettings,
                 ),
-                const SizedBox(width: 6),
-
-                // Tombol Keluar
-                _navBtn(
-                  icon: Icons.logout_rounded,
-                  label: 'Keluar',
-                  onTap: _handleExit,
-                  danger: true,
-                ),
               ],
             ),
           ),
@@ -1234,6 +1234,30 @@ class _LockedBrowserScreenState extends State<LockedBrowserScreen>
                           ]),
                         ),
                       ],
+                    ),
+                  ),
+
+                  // Tombol Keluar — pojok kiri bawah (floating)
+                  Positioned(
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    left: 16,
+                    child: FloatingActionButton.extended(
+                      heroTag: 'locked_exit_btn',
+                      onPressed: _handleExit,
+                      backgroundColor: Colors.red.withValues(alpha: 0.15),
+                      foregroundColor: Colors.red.withValues(alpha: 0.85),
+                      elevation: 2,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                        side: BorderSide(
+                            color: Colors.red.withValues(alpha: 0.3)),
+                      ),
+                      icon: const Icon(Icons.exit_to_app_rounded, size: 16),
+                      label: const Text(
+                        'Keluar',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
                     ),
                   ),
                 ],

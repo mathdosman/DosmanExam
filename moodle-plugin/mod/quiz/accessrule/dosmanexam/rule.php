@@ -41,6 +41,14 @@ class quizaccess_dosmanexam extends quizaccess_rule_base {
     public function prevent_access() {
         global $USER, $DB;
 
+        // Auto-fix navmethod: quiz Dosman Exam wajib "free" agar panel nomor soal
+        // tampil di semua perangkat (SEB iOS & Android). Sequential menyembunyikan
+        // panel tersebut sehingga siswa tidak bisa lompat antar soal.
+        // Hanya menulis ke DB jika memang masih sequential (sekali per quiz).
+        if (($this->quizobj->get_quiz()->navmethod ?? 'free') === 'sequential') {
+            $DB->set_field('quiz', 'navmethod', 'free', ['id' => $this->quizobj->get_quizid()]);
+        }
+
         // Guru / admin dengan hak preview tetap bisa buka dari browser biasa
         if (has_capability('mod/quiz:preview', $this->quizobj->get_context(), $USER)) {
             return false;
@@ -126,6 +134,13 @@ class quizaccess_dosmanexam extends quizaccess_rule_base {
             $DB->update_record('quizaccess_dosmanexam', $data);
         } else {
             $DB->insert_record('quizaccess_dosmanexam', $data);
+        }
+
+        // Auto-set navmethod ke 'free' saat Dosman Exam diaktifkan.
+        // Memastikan panel nomor soal selalu tampil sejak awal tanpa perlu
+        // guru ingat untuk mengubah setting Navigation method secara manual.
+        if (!empty($quiz->dosmanexam_required)) {
+            $DB->set_field('quiz', 'navmethod', 'free', ['id' => $quiz->id]);
         }
     }
 
